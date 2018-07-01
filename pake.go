@@ -1,12 +1,10 @@
 package pake
 
 import (
-	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"math/big"
 
 	"golang.org/x/crypto/bcrypt"
@@ -14,6 +12,20 @@ import (
 
 // Pake keeps public and private variables by
 // only transmitting between parties after marshaling
+//
+// This method follows
+// https://crypto.stanford.edu/~dabo/cryptobook/BonehShoup_0_4.pdf
+// Figure 21/15
+// http://www.lothar.com/~warner/MagicWormhole-PyCon2016.pdf
+// Slide 11
+
+type EllipticCurve interface {
+	Add(x1, y1, x2, y2 *big.Int) (*big.Int, *big.Int)
+	ScalarBaseMult(k []byte) (*big.Int, *big.Int)
+	ScalarMult(Bx, By *big.Int, k []byte) (*big.Int, *big.Int)
+	IsOnCurve(x, y *big.Int) bool
+}
+
 type Pake struct {
 	// Public variables
 	Role     int
@@ -24,7 +36,7 @@ type Pake struct {
 	HkA, HkB []byte
 
 	// Private variables
-	curve      elliptic.Curve
+	curve      EllipticCurve
 	pw         []byte
 	vpwᵤ, vpwᵥ *big.Int
 	upwᵤ, upwᵥ *big.Int
@@ -36,7 +48,7 @@ type Pake struct {
 	isVerified bool
 }
 
-func Init(pw []byte, role int, curve elliptic.Curve) (p *Pake, err error) {
+func Init(pw []byte, role int, curve EllipticCurve) (p *Pake, err error) {
 	p = new(Pake)
 	if role == 1 {
 		p.Role = 1
@@ -81,7 +93,6 @@ func (p *Pake) Bytes() []byte {
 // Update will update itself
 func (p *Pake) Update(qBytes []byte) (err error) {
 	var q *Pake
-	fmt.Println(string(qBytes))
 	err = json.Unmarshal(qBytes, &q)
 	if err != nil {
 		return
@@ -109,7 +120,7 @@ func (p *Pake) Update(qBytes []byte) (err error) {
 				return
 			}
 
-			// B computes Y
+			// STEP: B computes Y
 			p.vpwᵤ, p.vpwᵥ = p.curve.ScalarMult(p.Vᵤ, p.Vᵥ, p.pw)
 			p.upwᵤ, p.upwᵥ = p.curve.ScalarMult(p.Uᵤ, p.Uᵥ, p.pw)
 			p.α = make([]byte, 8) // randomly generated secret
@@ -129,6 +140,7 @@ func (p *Pake) Update(qBytes []byte) (err error) {
 			HB.Write(p.Yᵥ.Bytes())
 			HB.Write(p.zᵤ.Bytes())
 			HB.Write(p.zᵥ.Bytes())
+			// STEP: B computes k
 			p.k = HB.Sum(nil)
 			p.HkB, err = hashK(p.k)
 		} else if p.HkA == nil && q.HkA != nil {
@@ -145,7 +157,6 @@ func (p *Pake) Update(qBytes []byte) (err error) {
 			p.Yᵤ, p.Yᵥ = q.Yᵤ, q.Yᵥ
 
 			// STEP: A computes Z
-			fmt.Println(p.Yᵤ, p.Yᵥ, p.vpwᵤ, p.vpwᵥ)
 			p.zᵤ, p.zᵥ = p.curve.Add(p.Yᵤ, p.Yᵥ, p.vpwᵤ, new(big.Int).Neg(p.vpwᵥ))
 			p.zᵤ, p.zᵥ = p.curve.ScalarMult(p.zᵤ, p.zᵥ, p.α)
 			// STEP: A computes k
@@ -161,7 +172,8 @@ func (p *Pake) Update(qBytes []byte) (err error) {
 			p.k = HA.Sum(nil)
 			p.HkA, err = hashK(p.k)
 
-			// verify
+			// STEP: A verifies that its session key matches B's
+			// session key
 			err = checkKHash(p.HkB, p.k)
 			if err == nil {
 				p.isVerified = true
@@ -171,9 +183,9 @@ func (p *Pake) Update(qBytes []byte) (err error) {
 	return
 }
 
-// hashK generates a bcrypt hash of the password using work factor 14.
+// hashK generates a bcrypt hash of the password using work factor 12.
 func hashK(k []byte) ([]byte, error) {
-	return bcrypt.GenerateFromPassword(k, 14)
+	return bcrypt.GenerateFromPassword(k, 12)
 }
 
 // checkKHash securely compares a bcrypt hashed password with its possible
@@ -188,61 +200,68 @@ func (p *Pake) IsVerified() bool {
 	return p.isVerified
 }
 
-func main() {
-	// https://crypto.stanford.edu/~dabo/cryptobook/BonehShoup_0_4.pdf
-	// Figure 21/15
-	// http://www.lothar.com/~warner/MagicWormhole-PyCon2016.pdf
-	// Slide 11
-	// PUBLIC PARAMETERS (computed once)
-	p256 := elliptic.P256()
-	Uᵤ, Uᵥ := p256.ScalarBaseMult([]byte{1, 2, 3, 4})
-	Vᵤ, Vᵥ := p256.ScalarBaseMult([]byte{1, 2, 3, 4})
-	// PRIVATE PARAMATERS
-	// pw
-	pw := []byte{1, 1} // shared weak secret
-	// PROTOCOL
-	// STEP: A computes X
-	upwᵤ, upwᵥ := p256.ScalarMult(Uᵤ, Uᵥ, pw)
-	α := []byte{1, 2, 3, 4} // randomly generated secret
-	αᵤ, αᵥ := p256.ScalarBaseMult(α)
-	Xᵤ, Xᵥ := p256.Add(upwᵤ, upwᵥ, αᵤ, αᵥ) // "X"
-	// STEP: A sends X
-	// STEP: B computes Y
-	vpwᵤ, vpwᵥ := p256.ScalarMult(Vᵤ, Vᵥ, pw)
-	β := []byte{1, 2, 3, 4} // randomly generated secret
-	gβᵤ, gβᵥ := p256.ScalarBaseMult(β)
-	Yᵤ, Yᵥ := p256.Add(vpwᵤ, vpwᵥ, gβᵤ, gβᵥ) // "Y"
-	// STEP: B computes Z
-	BZᵤ, BZᵥ := p256.Add(Xᵤ, Xᵥ, upwᵤ, new(big.Int).Neg(upwᵥ))
-	BZᵤ, BZᵥ = p256.ScalarMult(BZᵤ, BZᵥ, β)
-	// STEP: B computes k
-	// H(pw,id_P,id_Q,X,Y,Z)
-	HB := sha256.New()
-	HB.Write(pw)
-	HB.Write(Xᵤ.Bytes())
-	HB.Write(Xᵥ.Bytes())
-	HB.Write(Yᵤ.Bytes())
-	HB.Write(Yᵥ.Bytes())
-	HB.Write(BZᵤ.Bytes())
-	HB.Write(BZᵥ.Bytes())
-	Bk := HB.Sum(nil)
-	// STEP: B sends Y
-	// STEP: A computes Z
-	AZᵤ, AZᵥ := p256.Add(Yᵤ, Yᵥ, vpwᵤ, new(big.Int).Neg(vpwᵥ))
-	AZᵤ, AZᵥ = p256.ScalarMult(AZᵤ, AZᵥ, α)
-	// STEP: A computes k
-	// H(pw,id_P,id_Q,X,Y,Z)
-	HA := sha256.New()
-	HA.Write(pw)
-	HA.Write(Xᵤ.Bytes())
-	HA.Write(Xᵥ.Bytes())
-	HA.Write(Yᵤ.Bytes())
-	HA.Write(Yᵥ.Bytes())
-	HA.Write(AZᵤ.Bytes())
-	HA.Write(AZᵥ.Bytes())
-	Ak := HA.Sum(nil)
-	// END
-	// verify
-	fmt.Println(Ak)
-	fmt.Println(Bk)
+// SessionKey is returned, unless it is not generated
+// in which is returns an error. This function does
+// not check if it is verifies.
+func (p *Pake) SessionKey() ([]byte, error) {
+	var err error
+	if p.k == nil {
+		err = errors.New("session key not generated")
+	}
+	return p.k, err
 }
+
+// func main() {
+// 	// PUBLIC PARAMETERS (computed once)
+// 	p256 := elliptic.P256()
+// 	Uᵤ, Uᵥ := p256.ScalarBaseMult([]byte{1, 2, 3, 4})
+// 	Vᵤ, Vᵥ := p256.ScalarBaseMult([]byte{1, 2, 3, 4})
+// 	// PRIVATE PARAMATERS
+// 	// pw
+// 	pw := []byte{1, 1} // shared weak secret
+// 	// PROTOCOL
+// 	// STEP: A computes X
+// 	upwᵤ, upwᵥ := p256.ScalarMult(Uᵤ, Uᵥ, pw)
+// 	α := []byte{1, 2, 3, 4} // randomly generated secret
+// 	αᵤ, αᵥ := p256.ScalarBaseMult(α)
+// 	Xᵤ, Xᵥ := p256.Add(upwᵤ, upwᵥ, αᵤ, αᵥ) // "X"
+// 	// STEP: A sends X
+// 	// STEP: B computes Y
+// 	vpwᵤ, vpwᵥ := p256.ScalarMult(Vᵤ, Vᵥ, pw)
+// 	β := []byte{1, 2, 3, 4} // randomly generated secret
+// 	gβᵤ, gβᵥ := p256.ScalarBaseMult(β)
+// 	Yᵤ, Yᵥ := p256.Add(vpwᵤ, vpwᵥ, gβᵤ, gβᵥ) // "Y"
+// 	// STEP: B computes Z
+// 	BZᵤ, BZᵥ := p256.Add(Xᵤ, Xᵥ, upwᵤ, new(big.Int).Neg(upwᵥ))
+// 	BZᵤ, BZᵥ = p256.ScalarMult(BZᵤ, BZᵥ, β)
+// 	// STEP: B computes k
+// 	// H(pw,id_P,id_Q,X,Y,Z)
+// 	HB := sha256.New()
+// 	HB.Write(pw)
+// 	HB.Write(Xᵤ.Bytes())
+// 	HB.Write(Xᵥ.Bytes())
+// 	HB.Write(Yᵤ.Bytes())
+// 	HB.Write(Yᵥ.Bytes())
+// 	HB.Write(BZᵤ.Bytes())
+// 	HB.Write(BZᵥ.Bytes())
+// 	Bk := HB.Sum(nil)
+// 	// STEP: B sends Y
+// 	// STEP: A computes Z
+// 	AZᵤ, AZᵥ := p256.Add(Yᵤ, Yᵥ, vpwᵤ, new(big.Int).Neg(vpwᵥ))
+// 	AZᵤ, AZᵥ = p256.ScalarMult(AZᵤ, AZᵥ, α)
+// 	// STEP: A computes k
+// 	// H(pw,id_P,id_Q,X,Y,Z)
+// 	HA := sha256.New()
+// 	HA.Write(pw)
+// 	HA.Write(Xᵤ.Bytes())
+// 	HA.Write(Xᵥ.Bytes())
+// 	HA.Write(Yᵤ.Bytes())
+// 	HA.Write(Yᵥ.Bytes())
+// 	HA.Write(AZᵤ.Bytes())
+// 	HA.Write(AZᵥ.Bytes())
+// 	Ak := HA.Sum(nil)
+// 	// END
+// 	// verify
+// 	fmt.Println(Ak)
+// 	fmt.Println(Bk)
+// }
