@@ -37,7 +37,7 @@ Q.Update(P.Bytes())
 k := P.SessionKey()
 ```
 
-The *H(k)* is a bcrypt hashed session key, which only the keeper of a real session key can verify. Passing this between P and Q allows them to understand that the other party does indeed have the session key. The session key can then be used to encrypt a message.
+The *H(k)* is a bcrypt hashed session key, which only the keeper of a real session key can verify. Passing this between P and Q allows them to understand that the other party does indeed have the session key derived correctly through the PAKE protocol. The session key can then be used to encrypt a message because it has never passed between parties.
 
 When passing *P* and *Q* back and forth, the structure is being marshalled using `Bytes()`, which prevents any private variables from being accessed from either party.
 
