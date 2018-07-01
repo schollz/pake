@@ -226,7 +226,7 @@ func (p *Pake) SessionKey() ([]byte, error) {
 // 	p256 := elliptic.P256()
 // 	Uᵤ, Uᵥ := p256.ScalarBaseMult([]byte{1, 2, 3, 4})
 // 	Vᵤ, Vᵥ := p256.ScalarBaseMult([]byte{1, 2, 3, 4})
-// 	// PRIVATE PARAMATERS
+// 	// PRIVATE PARAMETERS
 // 	// pw
 // 	pw := []byte{1, 1} // shared weak secret
 // 	// PROTOCOL
