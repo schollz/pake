@@ -103,3 +103,37 @@ func TestPake(t *testing.T) {
 	assert.False(t, B.IsVerified())
 
 }
+
+func TestSessionKey(t *testing.T) {
+	curve := siec.SIEC255()
+	// initialize A
+	A, _ := Init([]byte{1, 2, 3}, 0, curve)
+	// initialize B
+	B, _ := Init([]byte{1, 2, 3}, 1, curve)
+	// send A's stuff to B
+	B.Update(A.Bytes())
+	// send B's stuff to A
+	A.Update(B.Bytes())
+	// send A's stuff back to B
+	B.Update(A.Bytes())
+	s1, err := A.SessionKey()
+	assert.Nil(t, err)
+	s1B, err := B.SessionKey()
+	assert.Nil(t, err)
+	assert.Equal(t, s1, s1B)
+
+	// initialize A
+	A, _ = Init([]byte{1, 2, 3}, 0, curve)
+	// initialize B
+	B, _ = Init([]byte{1, 2, 3}, 1, curve)
+	// send A's stuff to B
+	B.Update(A.Bytes())
+	// send B's stuff to A
+	A.Update(B.Bytes())
+	// send A's stuff back to B
+	B.Update(A.Bytes())
+	s2, err := A.SessionKey()
+	assert.Nil(t, err)
+
+	assert.NotEqual(t, s1, s2)
+}

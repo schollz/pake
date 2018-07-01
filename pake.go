@@ -10,15 +10,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// Pake keeps public and private variables by
-// only transmitting between parties after marshaling
-//
-// This method follows
-// https://crypto.stanford.edu/~dabo/cryptobook/BonehShoup_0_4.pdf
-// Figure 21/15
-// http://www.lothar.com/~warner/MagicWormhole-PyCon2016.pdf
-// Slide 11
-
+// EllipticCurve is a general curve which allows other
+// elliptic curves to be used with PAKE.
 type EllipticCurve interface {
 	Add(x1, y1, x2, y2 *big.Int) (*big.Int, *big.Int)
 	ScalarBaseMult(k []byte) (*big.Int, *big.Int)
@@ -26,6 +19,14 @@ type EllipticCurve interface {
 	IsOnCurve(x, y *big.Int) bool
 }
 
+// Pake keeps public and private variables by
+// only transmitting between parties after marshaling.
+//
+// This method follows
+// https://crypto.stanford.edu/~dabo/cryptobook/BonehShoup_0_4.pdf
+// Figure 21/15
+// http://www.lothar.com/~warner/MagicWormhole-PyCon2016.pdf
+// Slide 11
 type Pake struct {
 	// Public variables
 	Role     int
@@ -48,6 +49,10 @@ type Pake struct {
 	isVerified bool
 }
 
+// Init will take the secret weak passphrase (pw) to initialize
+// the points on the elliptic curve. The role is set to either
+// 0 for the sender or 1 for the recipient.
+// The curve can be any elliptic curve.
 func Init(pw []byte, role int, curve EllipticCurve) (p *Pake, err error) {
 	p = new(Pake)
 	if role == 1 {
@@ -85,12 +90,16 @@ func Init(pw []byte, role int, curve EllipticCurve) (p *Pake, err error) {
 	return
 }
 
+// Bytes just marshalls the PAKE structure so that
+// private variables are hidden.
 func (p *Pake) Bytes() []byte {
 	b, _ := json.Marshal(p)
 	return b
 }
 
-// Update will update itself
+// Update will update itself with the other parties
+// PAKE and automatically determine what stage
+// and what to generate.
 func (p *Pake) Update(qBytes []byte) (err error) {
 	var q *Pake
 	err = json.Unmarshal(qBytes, &q)
@@ -211,6 +220,7 @@ func (p *Pake) SessionKey() ([]byte, error) {
 	return p.k, err
 }
 
+// full implementation
 // func main() {
 // 	// PUBLIC PARAMETERS (computed once)
 // 	p256 := elliptic.P256()
