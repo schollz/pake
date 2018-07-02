@@ -192,9 +192,9 @@ func (p *Pake) Update(qBytes []byte) (err error) {
 	return
 }
 
-// hashK generates a bcrypt hash of the password using work factor 12.
+// hashK generates a bcrypt hash of the password using work factor 10.
 func hashK(k []byte) ([]byte, error) {
-	return bcrypt.GenerateFromPassword(k, 12)
+	return bcrypt.GenerateFromPassword(k, 10)
 }
 
 // checkKHash securely compares a bcrypt hashed password with its possible
