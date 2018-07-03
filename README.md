@@ -1,6 +1,7 @@
 # pake
 
 [![travis](https://travis-ci.org/schollz/pake.svg?branch=master)](https://travis-ci.org/schollz/pake) 
+[![go report card](https://goreportcard.com/badge/github.com/schollz/pake)](https://goreportcard.com/report/github.com/schollz/pake)
 [![coverage](https://img.shields.io/badge/coverage-88%25-brightgreen.svg)](https://gocover.io/github.com/schollz/pake)
 [![godocs](https://godoc.org/github.com/schollz/pake?status.svg)](https://godoc.org/github.com/schollz/pake) 
 
