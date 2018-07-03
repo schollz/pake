@@ -22,11 +22,11 @@ go get -u github.com/schollz/pake
 // pick an elliptic curve
 curve := elliptic.P224() 
 // both parties should have a weak key
-sharedWeakKey := []byte{1, 2, 3}
+pw := []byte{1, 2, 3}
 // initialize P
-P, _ := Init(sharedWeakKey, 0, curve)
+P, _ := Init(pw, 0, curve)
 // initialize Q
-Q, _ := Init(sharedWeakKey, 1, curve)
+Q, _ := Init(pw, 1, curve)
 // P sends u to Q
 Q.Update(P.Bytes())
 // Q computes k, sends H(k), v back to P
