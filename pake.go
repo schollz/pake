@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math/big"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -47,14 +48,20 @@ type Pake struct {
 	k          []byte
 
 	isVerified bool
+	timeToHash time.Duration
 }
 
 // Init will take the secret weak passphrase (pw) to initialize
 // the points on the elliptic curve. The role is set to either
 // 0 for the sender or 1 for the recipient.
 // The curve can be any elliptic curve.
-func Init(pw []byte, role int, curve EllipticCurve) (p *Pake, err error) {
+func Init(pw []byte, role int, curve EllipticCurve, timeToHash ...time.Duration) (p *Pake, err error) {
 	p = new(Pake)
+	if len(timeToHash) > 0 {
+		p.timeToHash = timeToHash[0]
+	} else {
+		p.timeToHash = 1 * time.Second
+	}
 	if role == 1 {
 		p.Role = 1
 		p.curve = curve
@@ -151,7 +158,7 @@ func (p *Pake) Update(qBytes []byte) (err error) {
 			HB.Write(p.zᵥ.Bytes())
 			// STEP: B computes k
 			p.k = HB.Sum(nil)
-			p.HkB, err = hashK(p.k)
+			p.HkB, err = hashK(p.k, p.timeToHash)
 		} else if p.HkA == nil && q.HkA != nil {
 			p.HkA = q.HkA
 			// verify
@@ -179,7 +186,7 @@ func (p *Pake) Update(qBytes []byte) (err error) {
 			HA.Write(p.zᵤ.Bytes())
 			HA.Write(p.zᵥ.Bytes())
 			p.k = HA.Sum(nil)
-			p.HkA, err = hashK(p.k)
+			p.HkA, err = hashK(p.k, p.timeToHash)
 
 			// STEP: A verifies that its session key matches B's
 			// session key
@@ -193,8 +200,15 @@ func (p *Pake) Update(qBytes []byte) (err error) {
 }
 
 // hashK generates a bcrypt hash of the password using work factor 12.
-func hashK(k []byte) ([]byte, error) {
-	return bcrypt.GenerateFromPassword(k, 12)
+func hashK(k []byte, durationToWork time.Duration) (b []byte, err error) {
+	for i := 1; i < 24; i++ {
+		s := time.Now()
+		b, err = bcrypt.GenerateFromPassword(k, i)
+		if time.Since(s) > durationToWork {
+			return
+		}
+	}
+	return
 }
 
 // checkKHash securely compares a bcrypt hashed password with its possible
