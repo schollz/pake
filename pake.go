@@ -72,8 +72,14 @@ func Init(pw []byte, role int, curve EllipticCurve, timeToHash ...time.Duration)
 		p.pw = pw
 		rand1 := make([]byte, 8)
 		rand2 := make([]byte, 8)
-		rand.Read(rand1)
-		rand.Read(rand2)
+		_, err = rand.Read(rand1)
+		if err != nil {
+			return
+		}
+		_, err = rand.Read(rand2)
+		if err != nil {
+			return
+		}
 		p.Uᵤ, p.Uᵥ = p.curve.ScalarBaseMult(rand1)
 		p.Vᵤ, p.Vᵥ = p.curve.ScalarBaseMult(rand2)
 		if !p.curve.IsOnCurve(p.Uᵤ, p.Uᵥ) {
@@ -89,7 +95,10 @@ func Init(pw []byte, role int, curve EllipticCurve, timeToHash ...time.Duration)
 		p.vpwᵤ, p.vpwᵥ = p.curve.ScalarMult(p.Vᵤ, p.Vᵥ, p.pw)
 		p.upwᵤ, p.upwᵥ = p.curve.ScalarMult(p.Uᵤ, p.Uᵥ, p.pw)
 		p.α = make([]byte, 8) // randomly generated secret
-		rand.Read(p.α)
+		_, err = rand.Read(p.α)
+		if err != nil {
+			return
+		}
 		p.αᵤ, p.αᵥ = p.curve.ScalarBaseMult(p.α)
 		p.Xᵤ, p.Xᵥ = p.curve.Add(p.upwᵤ, p.upwᵥ, p.αᵤ, p.αᵥ) // "X"
 		// now X should be sent to B
