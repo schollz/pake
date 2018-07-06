@@ -5,7 +5,7 @@
 [![coverage](https://img.shields.io/badge/coverage-88%25-brightgreen.svg)](https://gocover.io/github.com/schollz/pake)
 [![godocs](https://godoc.org/github.com/schollz/pake?status.svg)](https://godoc.org/github.com/schollz/pake) 
 
-This library will help you allow two parties to generate a mutual secret key by using a weak key that is known to both beforehand (e.g. via some other channel of communication). This is a simple API for an implementation of password-authenticated key agreement (PAKE). This protocol is derived from [Dan Boneh and Victor Shoup's cryptography book](https://crypto.stanford.edu/~dabo/cryptobook/BonehShoup_0_4.pdf) (pg 789, "PAKE2 protocol). I decided to create this library so I could use PAKE in my file-transfer utility, [croc](https://github.com/schollz/croc).
+This library will help you allow two parties to generate a mutual secret key by using a weak key that is known to both beforehand (e.g. via some other channel of communication). This is a simple API for an implementation of password-authenticated key exchange (PAKE). This protocol is derived from [Dan Boneh and Victor Shoup's cryptography book](https://crypto.stanford.edu/~dabo/cryptobook/BonehShoup_0_4.pdf) (pg 789, "PAKE2 protocol). I decided to create this library so I could use PAKE in my file-transfer utility, [croc](https://github.com/schollz/croc).
 
 
 ## Install
@@ -22,11 +22,11 @@ go get -u github.com/schollz/pake
 // pick an elliptic curve
 curve := elliptic.P224() 
 // both parties should have a weak key
-sharedWeakKey := []byte{1, 2, 3}
+pw := []byte{1, 2, 3}
 // initialize P
-P, _ := Init(sharedWeakKey, 0, curve)
+P, _ := Init(pw, 0, curve)
 // initialize Q
-Q, _ := Init(sharedWeakKey, 1, curve)
+Q, _ := Init(pw, 1, curve)
 // P sends u to Q
 Q.Update(P.Bytes())
 // Q computes k, sends H(k), v back to P
@@ -37,7 +37,7 @@ Q.Update(P.Bytes())
 k := P.SessionKey()
 ```
 
-The *H(k)* is a bcrypt hashed session key, which only the keeper of a real session key can verify. Passing this between P and Q allows them to understand that the other party does indeed have the session key. The session key can then be used to encrypt a message.
+The *H(k)* is a bcrypt hashed session key, which only the keeper of a real session key can verify. Passing this between P and Q allows them to understand that the other party does indeed have the session key derived correctly through the PAKE protocol. The session key can then be used to encrypt a message because it has never passed between parties.
 
 When passing *P* and *Q* back and forth, the structure is being marshalled using `Bytes()`, which prevents any private variables from being accessed from either party.
 
