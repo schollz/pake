@@ -23,16 +23,27 @@ go get -u github.com/schollz/pake
 curve := elliptic.P224() 
 // both parties should have a weak key
 pw := []byte{1, 2, 3}
-// initialize P
-P, _ := Init(pw, 0, curve)
-// initialize Q
-Q, _ := Init(pw, 1, curve)
-// P sends u to Q
-Q.Update(P.Bytes())
+
+// initialize sender P ("0" indicates sender)
+P, err := Init(pw, 0, curve)
+check(err)
+
+// initialize recipient Q ("1" indicates recipient)
+Q, err := Init(pw, 1, curve)
+check(err)
+
+// first, P sends u to Q
+err = Q.Update(P.Bytes())
+check(err) // errors will occur when any part of the process fails
+
 // Q computes k, sends H(k), v back to P
-P.Update(Q.Bytes())
+err = P.Update(Q.Bytes())
+check(err)
+
 // P computes k, H(k), sends H(k) to Q
-Q.Update(P.Bytes())
+err = Q.Update(P.Bytes())
+check(err)
+
 // both P and Q now have session key
 k := P.SessionKey()
 ```
