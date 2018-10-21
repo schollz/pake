@@ -1,6 +1,7 @@
 package pake
 
 import (
+	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/json"
@@ -8,6 +9,7 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/tscholl2/siec"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -49,6 +51,32 @@ type Pake struct {
 
 	isVerified bool
 	timeToHash time.Duration
+}
+
+// InitCurve will take the secret weak passphrase (pw) to initialize
+// the points on the elliptic curve. The role is set to either
+// 0 for the sender or 1 for the recipient.
+// The curve can be siec,  p521, p256, p384
+func InitCurve(pw []byte, role int, curve string, timeToHash ...time.Duration) (p *Pake, err error) {
+	var ellipticCurve EllipticCurve
+	switch curve {
+	case "siec":
+		ellipticCurve = siec.SIEC255()
+	case "p521":
+		ellipticCurve = elliptic.P521()
+	case "p256":
+		ellipticCurve = elliptic.P256()
+	case "p384":
+		ellipticCurve = elliptic.P384()
+	default:
+		err = errors.New("no such curve")
+		return
+	}
+	if len(timeToHash) > 0 {
+		return Init(pw, role, ellipticCurve, timeToHash[0])
+	} else {
+		return Init(pw, role, ellipticCurve)
+	}
 }
 
 // Init will take the secret weak passphrase (pw) to initialize

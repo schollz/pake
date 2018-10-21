@@ -139,7 +139,7 @@ func TestSessionKeySIEC255(t *testing.T) {
 	assert.NotEqual(t, s1, s2)
 }
 
-// THIS TEST DOES NOT WORK!?!
+// // THIS TEST DOES NOT WORK!?!
 // func TestSessionKeyP224(t *testing.T) {
 // 	curve := elliptic.P224()
 // 	// initialize A
@@ -274,4 +274,39 @@ func TestSessionKeyP384(t *testing.T) {
 	assert.Nil(t, err)
 
 	assert.NotEqual(t, s1, s2)
+}
+
+func TestSessionKeyString(t *testing.T) {
+	curves := []string{"siec", "p384", "p521", "p256"}
+	for _, curve := range curves {
+		A, _ := InitCurve([]byte{1, 2, 3}, 0, curve, 1*time.Millisecond)
+		// initialize B
+		B, _ := InitCurve([]byte{1, 2, 3}, 1, curve, 1*time.Millisecond)
+		// send A's stuff to B
+		B.Update(A.Bytes())
+		// send B's stuff to A
+		A.Update(B.Bytes())
+		// send A's stuff back to B
+		B.Update(A.Bytes())
+		s1, err := A.SessionKey()
+		assert.Nil(t, err)
+		s1B, err := B.SessionKey()
+		assert.Nil(t, err)
+		assert.Equal(t, s1, s1B)
+
+		// initialize A
+		A, _ = InitCurve([]byte{1, 2, 3}, 0, curve, 1*time.Millisecond)
+		// initialize B
+		B, _ = InitCurve([]byte{1, 2, 3}, 1, curve, 1*time.Millisecond)
+		// send A's stuff to B
+		B.Update(A.Bytes())
+		// send B's stuff to A
+		A.Update(B.Bytes())
+		// send A's stuff back to B
+		B.Update(A.Bytes())
+		s2, err := A.SessionKey()
+		assert.Nil(t, err)
+
+		assert.NotEqual(t, s1, s2)
+	}
 }
