@@ -20,7 +20,7 @@ go get -u github.com/schollz/pake
 
 ```golang
 // pick an elliptic curve
-curve := elliptic.P224() 
+curve := elliptic.P521() 
 // both parties should have a weak key
 pw := []byte{1, 2, 3}
 
