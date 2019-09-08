@@ -69,6 +69,7 @@ func TestError(t *testing.T) {
 	assert.NotNil(t, B.Update(A.Bytes()))
 	assert.False(t, A.IsVerified())
 	assert.NotNil(t, B.Update([]byte("{1:1}")))
+	A.SetCurve(siec.SIEC255())
 
 }
 

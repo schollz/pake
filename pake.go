@@ -96,6 +96,11 @@ func InitCurve(pw []byte, role int, curve string, timeToHash ...time.Duration) (
 	}
 }
 
+// SetCurve is used when unmarshaling the whole private struct
+func (p *Pake) SetCurve(ellipticCurve EllipticCurve) {
+	p.curve = ellipticCurve
+}
+
 // Init will take the secret weak passphrase (pw) to initialize
 // the points on the elliptic curve. The role is set to either
 // 0 for the sender or 1 for the recipient.
