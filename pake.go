@@ -110,14 +110,15 @@ func Init(pw []byte, role int, curve EllipticCurve, timeToHash ...time.Duration)
 		}
 		p.Uᵤ, p.Uᵥ = p.curve.ScalarBaseMult(rand1)
 		p.Vᵤ, p.Vᵥ = p.curve.ScalarBaseMult(rand2)
-		if !p.curve.IsOnCurve(p.Uᵤ, p.Uᵥ) {
-			err = errors.New("U values not on curve")
-			return
-		}
-		if !p.curve.IsOnCurve(p.Vᵤ, p.Vᵥ) {
-			err = errors.New("V values not on curve")
-			return
-		}
+		// this can't occur
+		// if !p.curve.IsOnCurve(p.Uᵤ, p.Uᵥ) {
+		// 	err = errors.New("U values not on curve")
+		// 	return
+		// }
+		// if !p.curve.IsOnCurve(p.Vᵤ, p.Vᵥ) {
+		// 	err = errors.New("V values not on curve")
+		// 	return
+		// }
 
 		// STEP: A computes X
 		p.vpwᵤ, p.vpwᵥ = p.curve.ScalarMult(p.Vᵤ, p.Vᵥ, p.pw)
