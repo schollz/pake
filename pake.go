@@ -41,16 +41,33 @@ type Pake struct {
 
 	// Private variables
 	curve      EllipticCurve
-	pw         []byte
-	vpwᵤ, vpwᵥ *big.Int
-	upwᵤ, upwᵥ *big.Int
-	α          []byte
-	αᵤ, αᵥ     *big.Int
-	zᵤ, zᵥ     *big.Int
-	k          []byte
+	Pw         []byte
+	Vpwᵤ, Vpwᵥ *big.Int
+	Upwᵤ, Upwᵥ *big.Int
+	Aα         []byte
+	Aαᵤ, Aαᵥ   *big.Int
+	Zᵤ, Zᵥ     *big.Int
+	K          []byte
 
-	isVerified bool
-	timeToHash time.Duration
+	IsVerifiedBool bool
+	TimeToHash     time.Duration
+}
+
+// Public returns the public variables of Pake
+func (p *Pake) Public() *Pake {
+	return &Pake{
+		Role: p.Role,
+		Uᵤ:   p.Uᵤ,
+		Uᵥ:   p.Uᵥ,
+		Vᵤ:   p.Vᵤ,
+		Vᵥ:   p.Vᵥ,
+		Xᵤ:   p.Xᵤ,
+		Xᵥ:   p.Xᵥ,
+		Yᵤ:   p.Yᵤ,
+		Yᵥ:   p.Yᵥ,
+		HkA:  p.HkA,
+		HkB:  p.HkB,
+	}
 }
 
 // InitCurve will take the secret weak passphrase (pw) to initialize
@@ -60,14 +77,14 @@ type Pake struct {
 func InitCurve(pw []byte, role int, curve string, timeToHash ...time.Duration) (p *Pake, err error) {
 	var ellipticCurve EllipticCurve
 	switch curve {
-	case "siec":
-		ellipticCurve = siec.SIEC255()
 	case "p521":
 		ellipticCurve = elliptic.P521()
 	case "p256":
 		ellipticCurve = elliptic.P256()
 	case "p384":
 		ellipticCurve = elliptic.P384()
+	case "siec":
+		ellipticCurve = siec.SIEC255()
 	default:
 		err = errors.New("no such curve")
 		return
@@ -86,18 +103,18 @@ func InitCurve(pw []byte, role int, curve string, timeToHash ...time.Duration) (
 func Init(pw []byte, role int, curve EllipticCurve, timeToHash ...time.Duration) (p *Pake, err error) {
 	p = new(Pake)
 	if len(timeToHash) > 0 {
-		p.timeToHash = timeToHash[0]
+		p.TimeToHash = timeToHash[0]
 	} else {
-		p.timeToHash = 1 * time.Second
+		p.TimeToHash = 1 * time.Second
 	}
 	if role == 1 {
 		p.Role = 1
 		p.curve = curve
-		p.pw = pw
+		p.Pw = pw
 	} else {
 		p.Role = 0
 		p.curve = curve
-		p.pw = pw
+		p.Pw = pw
 		rand1 := make([]byte, 8)
 		rand2 := make([]byte, 8)
 		_, err = rand.Read(rand1)
@@ -110,7 +127,6 @@ func Init(pw []byte, role int, curve EllipticCurve, timeToHash ...time.Duration)
 		}
 		p.Uᵤ, p.Uᵥ = p.curve.ScalarBaseMult(rand1)
 		p.Vᵤ, p.Vᵥ = p.curve.ScalarBaseMult(rand2)
-		// this can't occur
 		// if !p.curve.IsOnCurve(p.Uᵤ, p.Uᵥ) {
 		// 	err = errors.New("U values not on curve")
 		// 	return
@@ -121,15 +137,15 @@ func Init(pw []byte, role int, curve EllipticCurve, timeToHash ...time.Duration)
 		// }
 
 		// STEP: A computes X
-		p.vpwᵤ, p.vpwᵥ = p.curve.ScalarMult(p.Vᵤ, p.Vᵥ, p.pw)
-		p.upwᵤ, p.upwᵥ = p.curve.ScalarMult(p.Uᵤ, p.Uᵥ, p.pw)
-		p.α = make([]byte, 8) // randomly generated secret
-		_, err = rand.Read(p.α)
+		p.Vpwᵤ, p.Vpwᵥ = p.curve.ScalarMult(p.Vᵤ, p.Vᵥ, p.Pw)
+		p.Upwᵤ, p.Upwᵥ = p.curve.ScalarMult(p.Uᵤ, p.Uᵥ, p.Pw)
+		p.Aα = make([]byte, 8) // randomly generated secret
+		_, err = rand.Read(p.Aα)
 		if err != nil {
 			return
 		}
-		p.αᵤ, p.αᵥ = p.curve.ScalarBaseMult(p.α)
-		p.Xᵤ, p.Xᵥ = p.curve.Add(p.upwᵤ, p.upwᵥ, p.αᵤ, p.αᵥ) // "X"
+		p.Aαᵤ, p.Aαᵥ = p.curve.ScalarBaseMult(p.Aα)
+		p.Xᵤ, p.Xᵥ = p.curve.Add(p.Upwᵤ, p.Upwᵥ, p.Aαᵤ, p.Aαᵥ) // "X"
 		// now X should be sent to B
 	}
 	return
@@ -138,7 +154,7 @@ func Init(pw []byte, role int, curve EllipticCurve, timeToHash ...time.Duration)
 // Bytes just marshalls the PAKE structure so that
 // private variables are hidden.
 func (p *Pake) Bytes() []byte {
-	b, _ := json.Marshal(p)
+	b, _ := json.Marshal(p.Public())
 	return b
 }
 
@@ -164,45 +180,45 @@ func (p *Pake) Update(qBytes []byte) (err error) {
 			p.Vᵤ, p.Vᵥ = q.Vᵤ, q.Vᵥ
 			p.Xᵤ, p.Xᵥ = q.Xᵤ, q.Xᵥ
 
-			// confirm that U,V are on curve
-			if !p.curve.IsOnCurve(p.Uᵤ, p.Uᵥ) {
-				err = errors.New("U values not on curve")
-				return
-			}
-			if !p.curve.IsOnCurve(p.Vᵤ, p.Vᵥ) {
-				err = errors.New("V values not on curve")
-				return
-			}
+			// // confirm that U,V are on curve
+			// if !p.curve.IsOnCurve(p.Uᵤ, p.Uᵥ) {
+			// 	err = errors.New("U values not on curve")
+			// 	return
+			// }
+			// if !p.curve.IsOnCurve(p.Vᵤ, p.Vᵥ) {
+			// 	err = errors.New("V values not on curve")
+			// 	return
+			// }
 
 			// STEP: B computes Y
-			p.vpwᵤ, p.vpwᵥ = p.curve.ScalarMult(p.Vᵤ, p.Vᵥ, p.pw)
-			p.upwᵤ, p.upwᵥ = p.curve.ScalarMult(p.Uᵤ, p.Uᵥ, p.pw)
-			p.α = make([]byte, 8) // randomly generated secret
-			rand.Read(p.α)
-			p.αᵤ, p.αᵥ = p.curve.ScalarBaseMult(p.α)
-			p.Yᵤ, p.Yᵥ = p.curve.Add(p.vpwᵤ, p.vpwᵥ, p.αᵤ, p.αᵥ) // "Y"
+			p.Vpwᵤ, p.Vpwᵥ = p.curve.ScalarMult(p.Vᵤ, p.Vᵥ, p.Pw)
+			p.Upwᵤ, p.Upwᵥ = p.curve.ScalarMult(p.Uᵤ, p.Uᵥ, p.Pw)
+			p.Aα = make([]byte, 8) // randomly generated secret
+			rand.Read(p.Aα)
+			p.Aαᵤ, p.Aαᵥ = p.curve.ScalarBaseMult(p.Aα)
+			p.Yᵤ, p.Yᵥ = p.curve.Add(p.Vpwᵤ, p.Vpwᵥ, p.Aαᵤ, p.Aαᵥ) // "Y"
 			// STEP: B computes Z
-			p.zᵤ, p.zᵥ = p.curve.Add(p.Xᵤ, p.Xᵥ, p.upwᵤ, new(big.Int).Neg(p.upwᵥ))
-			p.zᵤ, p.zᵥ = p.curve.ScalarMult(p.zᵤ, p.zᵥ, p.α)
+			p.Zᵤ, p.Zᵥ = p.curve.Add(p.Xᵤ, p.Xᵥ, p.Upwᵤ, new(big.Int).Neg(p.Upwᵥ))
+			p.Zᵤ, p.Zᵥ = p.curve.ScalarMult(p.Zᵤ, p.Zᵥ, p.Aα)
 			// STEP: B computes k
 			// H(pw,id_P,id_Q,X,Y,Z)
 			HB := sha256.New()
-			HB.Write(p.pw)
+			HB.Write(p.Pw)
 			HB.Write(p.Xᵤ.Bytes())
 			HB.Write(p.Xᵥ.Bytes())
 			HB.Write(p.Yᵤ.Bytes())
 			HB.Write(p.Yᵥ.Bytes())
-			HB.Write(p.zᵤ.Bytes())
-			HB.Write(p.zᵥ.Bytes())
+			HB.Write(p.Zᵤ.Bytes())
+			HB.Write(p.Zᵥ.Bytes())
 			// STEP: B computes k
-			p.k = HB.Sum(nil)
-			p.HkB, err = hashK(p.k, p.timeToHash)
+			p.K = HB.Sum(nil)
+			p.HkB, err = hashK(p.K, p.TimeToHash)
 		} else if p.HkA == nil && q.HkA != nil {
 			p.HkA = q.HkA
 			// verify
-			err = checkKHash(p.HkA, p.k)
+			err = checkKHash(p.HkA, p.K)
 			if err == nil {
-				p.isVerified = true
+				p.IsVerifiedBool = true
 			}
 		}
 	} else {
@@ -211,26 +227,26 @@ func (p *Pake) Update(qBytes []byte) (err error) {
 			p.Yᵤ, p.Yᵥ = q.Yᵤ, q.Yᵥ
 
 			// STEP: A computes Z
-			p.zᵤ, p.zᵥ = p.curve.Add(p.Yᵤ, p.Yᵥ, p.vpwᵤ, new(big.Int).Neg(p.vpwᵥ))
-			p.zᵤ, p.zᵥ = p.curve.ScalarMult(p.zᵤ, p.zᵥ, p.α)
+			p.Zᵤ, p.Zᵥ = p.curve.Add(p.Yᵤ, p.Yᵥ, p.Vpwᵤ, new(big.Int).Neg(p.Vpwᵥ))
+			p.Zᵤ, p.Zᵥ = p.curve.ScalarMult(p.Zᵤ, p.Zᵥ, p.Aα)
 			// STEP: A computes k
 			// H(pw,id_P,id_Q,X,Y,Z)
 			HA := sha256.New()
-			HA.Write(p.pw)
+			HA.Write(p.Pw)
 			HA.Write(p.Xᵤ.Bytes())
 			HA.Write(p.Xᵥ.Bytes())
 			HA.Write(p.Yᵤ.Bytes())
 			HA.Write(p.Yᵥ.Bytes())
-			HA.Write(p.zᵤ.Bytes())
-			HA.Write(p.zᵥ.Bytes())
-			p.k = HA.Sum(nil)
-			p.HkA, err = hashK(p.k, p.timeToHash)
+			HA.Write(p.Zᵤ.Bytes())
+			HA.Write(p.Zᵥ.Bytes())
+			p.K = HA.Sum(nil)
+			p.HkA, err = hashK(p.K, p.TimeToHash)
 
 			// STEP: A verifies that its session key matches B's
 			// session key
-			err = checkKHash(p.HkB, p.k)
+			err = checkKHash(p.HkB, p.K)
 			if err == nil {
-				p.isVerified = true
+				p.IsVerifiedBool = true
 			}
 		}
 	}
@@ -258,7 +274,7 @@ func checkKHash(hash, k []byte) error {
 // IsVerified returns whether or not the k has been
 // generated AND it confirmed to be the same as partner
 func (p *Pake) IsVerified() bool {
-	return p.isVerified
+	return p.IsVerifiedBool
 }
 
 // SessionKey is returned, unless it is not generated
@@ -266,8 +282,8 @@ func (p *Pake) IsVerified() bool {
 // not check if it is verifies.
 func (p *Pake) SessionKey() ([]byte, error) {
 	var err error
-	if p.k == nil {
+	if p.K == nil {
 		err = errors.New("session key not generated")
 	}
-	return p.k, err
+	return p.K, err
 }
