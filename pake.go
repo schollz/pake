@@ -258,15 +258,9 @@ func (p *Pake) Update(qBytes []byte) (err error) {
 	return
 }
 
-// hashK generates a bcrypt hash of the password using work factor 12.
+// hashK generates a bcrypt hash of the password using work factor 10.
 func hashK(k []byte, durationToWork time.Duration) (b []byte, err error) {
-	for i := 1; i < 24; i++ {
-		s := time.Now()
-		b, err = bcrypt.GenerateFromPassword(k, i)
-		if time.Since(s) > durationToWork {
-			return
-		}
-	}
+		b, err = bcrypt.GenerateFromPassword(k, 10)
 	return
 }
 
