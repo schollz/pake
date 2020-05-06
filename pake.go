@@ -132,14 +132,14 @@ func Init(pw []byte, role int, curve EllipticCurve, timeToHash ...time.Duration)
 		}
 		p.Uᵤ, p.Uᵥ = p.curve.ScalarBaseMult(rand1)
 		p.Vᵤ, p.Vᵥ = p.curve.ScalarBaseMult(rand2)
-		 if !p.curve.IsOnCurve(p.Uᵤ, p.Uᵥ) {
-		 	err = errors.New("U values not on curve")
-		 	return
-		 }
-		 if !p.curve.IsOnCurve(p.Vᵤ, p.Vᵥ) {
-		 	err = errors.New("V values not on curve")
-		 	return
-		 }
+		if !p.curve.IsOnCurve(p.Uᵤ, p.Uᵥ) {
+			err = errors.New("U values not on curve")
+			return
+		}
+		if !p.curve.IsOnCurve(p.Vᵤ, p.Vᵥ) {
+			err = errors.New("V values not on curve")
+			return
+		}
 
 		// STEP: A computes X
 		p.Vpwᵤ, p.Vpwᵥ = p.curve.ScalarMult(p.Vᵤ, p.Vᵥ, p.Pw)
@@ -186,14 +186,14 @@ func (p *Pake) Update(qBytes []byte) (err error) {
 			p.Xᵤ, p.Xᵥ = q.Xᵤ, q.Xᵥ
 
 			// // confirm that U,V are on curve
-			 if !p.curve.IsOnCurve(p.Uᵤ, p.Uᵥ) {
-			 	err = errors.New("U values not on curve")
-			 	return
-			 }
-			 if !p.curve.IsOnCurve(p.Vᵤ, p.Vᵥ) {
-			 	err = errors.New("V values not on curve")
-			 	return
-			 }
+			if !p.curve.IsOnCurve(p.Uᵤ, p.Uᵥ) {
+				err = errors.New("U values not on curve")
+				return
+			}
+			if !p.curve.IsOnCurve(p.Vᵤ, p.Vᵥ) {
+				err = errors.New("V values not on curve")
+				return
+			}
 
 			// STEP: B computes Y
 			p.Vpwᵤ, p.Vpwᵥ = p.curve.ScalarMult(p.Vᵤ, p.Vᵥ, p.Pw)
@@ -218,6 +218,7 @@ func (p *Pake) Update(qBytes []byte) (err error) {
 			// STEP: B computes k
 			p.K = HB.Sum(nil)
 			p.HkB, err = hashK(p.K, p.TimeToHash)
+
 		} else if p.HkA == nil && q.HkA != nil {
 			p.HkA = q.HkA
 			// verify
@@ -260,7 +261,13 @@ func (p *Pake) Update(qBytes []byte) (err error) {
 
 // hashK generates a bcrypt hash of the password using work factor 10.
 func hashK(k []byte, durationToWork time.Duration) (b []byte, err error) {
-		b, err = bcrypt.GenerateFromPassword(k, 10)
+	start := time.Now()
+	for i := 4; i < 31; i++ {
+		b, err = bcrypt.GenerateFromPassword(k, i)
+		if time.Since(start).Microseconds() > durationToWork.Microseconds() {
+			break
+		}
+	}
 	return
 }
 
