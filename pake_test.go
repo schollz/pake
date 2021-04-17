@@ -1,11 +1,46 @@
 package pake
 
 import (
+	"bytes"
 	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func ExampleUsage() {
+	// both parties should have a weak key
+	weakKey := []byte{1, 2, 3}
+
+	// initialize A
+	A, err := InitCurve(weakKey, 0, "siec")
+	if err != nil {
+		panic(err)
+	}
+	// initialize B
+	B, err := InitCurve(weakKey, 1, "siec")
+	if err != nil {
+		panic(err)
+	}
+
+	// send A's stuff to B
+	err = B.Update(A.Bytes())
+	if err != nil {
+		panic(err)
+	}
+
+	// send B's stuff to A
+	err = A.Update(B.Bytes())
+	if err != nil {
+		panic(err)
+	}
+
+	// both P and Q now have session key
+	kA, _ := A.SessionKey()
+	kB, _ := A.SessionKey()
+	fmt.Println(bytes.Equal(kA, kB))
+	// Output: true
+}
 
 func TestBadCurve(t *testing.T) {
 	_, err := InitCurve([]byte{1, 2, 3}, 0, "bad")
