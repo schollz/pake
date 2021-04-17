@@ -11,7 +11,7 @@ This library will help you allow two parties to generate a mutual secret key by 
 ## Install
 
 ```
-go get -u github.com/schollz/pake
+go get -u github.com/schollz/pake/v3
 ```
 
 ## Usage 
@@ -154,7 +154,8 @@ Pull requests are welcome. Feel free to...
 
 ## Thanks
 
-Thanks [@tscholl2](https://github.com/tscholl2) for implementing the first version.
+Thanks [@tscholl2](https://github.com/tscholl2) for lots of implementation help, fixes, and developing the novel ["siec" curve](https://doi.org/10.1080/10586458.2017.1412371).
+
 
 ## License
 
