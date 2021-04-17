@@ -1,113 +1,51 @@
 package pake
 
 import (
-	"crypto/elliptic"
+	"fmt"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/tscholl2/siec"
 )
 
-func BenchmarkPakeSIEC255(b *testing.B) {
-	curve := siec.SIEC255()
-	for i := 0; i < b.N; i++ {
-		// initialize A
-		A, _ := Init([]byte{1, 2, 3}, 0, curve, 1*time.Microsecond)
-		// initialize B
-		B, _ := Init([]byte{1, 2, 3}, 1, curve, 1*time.Microsecond)
-		// send A's stuff to B
-		B.Update(A.Bytes())
-		// send B's stuff to A
-		A.Update(B.Bytes())
-		// send A's stuff back to B
-		B.Update(A.Bytes())
-	}
-}
-
-func BenchmarkPakeP521(b *testing.B) {
-	curve := elliptic.P521()
-	for i := 0; i < b.N; i++ {
-		// initialize A
-		A, _ := Init([]byte{1, 2, 3}, 0, curve, 1*time.Microsecond)
-		// initialize B
-		B, _ := Init([]byte{1, 2, 3}, 1, curve, 1*time.Microsecond)
-		// send A's stuff to B
-		B.Update(A.Bytes())
-		// send B's stuff to A
-		A.Update(B.Bytes())
-		// send A's stuff back to B
-		B.Update(A.Bytes())
-	}
-}
-
-func BenchmarkPakeP224(b *testing.B) {
-	curve := elliptic.P224()
-	for i := 0; i < b.N; i++ {
-		// initialize A
-		A, _ := Init([]byte{1, 2, 3}, 0, curve, 1*time.Microsecond)
-		// initialize B
-		B, _ := Init([]byte{1, 2, 3}, 1, curve, 1*time.Microsecond)
-		// send A's stuff to B
-		B.Update(A.Bytes())
-		// send B's stuff to A
-		A.Update(B.Bytes())
-		// send A's stuff back to B
-		B.Update(A.Bytes())
-	}
-}
-
-func TestError(t *testing.T) {
-	A, err := InitCurve([]byte{1, 2, 3}, 0, "nosuchcurve", 1*time.Millisecond)
+func TestBadCurve(t *testing.T) {
+	_, err := InitCurve([]byte{1, 2, 3}, 0, "bad")
 	assert.NotNil(t, err)
-	A, err = InitCurve([]byte{1, 2, 3}, 0, "p521")
-	assert.Nil(t, err)
-	_, err = A.SessionKey()
-	assert.NotNil(t, err)
-	B, err := InitCurve([]byte{1, 2, 3}, 0, "p521")
-	assert.Nil(t, err)
-	assert.NotNil(t, B.Update(A.Bytes()))
-	assert.False(t, A.IsVerified())
-	assert.NotNil(t, B.Update([]byte("{1:1}")))
-	A.SetCurve(siec.SIEC255())
-
 }
 
 func TestSessionKeyString(t *testing.T) {
-	curves := []string{"siec", "p384", "p521", "p256"}
-	for _, curve := range curves {
-		A, err := InitCurve([]byte{1, 2, 3}, 0, curve, 1*time.Millisecond)
+	for _, curve := range AvailableCurves() {
+		A, err := InitCurve([]byte{1, 2, 3}, 0, curve)
 		assert.Nil(t, err)
 		// initialize B
-		B, err := InitCurve([]byte{1, 2, 3}, 1, curve, 1*time.Millisecond)
+		B, err := InitCurve([]byte{1, 2, 3}, 1, curve)
 		assert.Nil(t, err)
 		// send A's stuff to B
 		B.Update(A.Bytes())
 		// send B's stuff to A
 		A.Update(B.Bytes())
-		// send A's stuff back to B
-		B.Update(A.Bytes())
-		s1, err := A.SessionKey()
+
+		s1A, err := A.SessionKey()
 		assert.Nil(t, err)
 		s1B, err := B.SessionKey()
 		assert.Nil(t, err)
-		assert.Equal(t, s1, s1B)
+		fmt.Printf("A) K=%x\n", s1A)
+		fmt.Printf("B) K=%x\n", s1B)
+		assert.Equal(t, s1A, s1B)
 
+		// test using incorrect password
 		// initialize A
-		A, _ = InitCurve([]byte{1, 2, 3}, 0, curve, 1*time.Millisecond)
+		A, _ = InitCurve([]byte{1, 2, 3}, 0, curve)
 		// initialize B
-		B, _ = InitCurve([]byte{1, 2, 3}, 1, curve, 1*time.Millisecond)
+		B, _ = InitCurve([]byte{1, 2, 4}, 1, curve)
 		// send A's stuff to B
 		B.Update(A.Bytes())
 		// send B's stuff to A
 		A.Update(B.Bytes())
-		// send A's stuff back to B
-		B.Update(A.Bytes())
-		s2, err := A.SessionKey()
-		assert.Nil(t, err)
 
-		assert.NotEqual(t, s1, s2)
-		assert.True(t, A.IsVerified())
-		assert.True(t, B.IsVerified())
+		s1A, err = A.SessionKey()
+		assert.Nil(t, err)
+		s1B, err = B.SessionKey()
+		assert.Nil(t, err)
+		assert.NotEqual(t, s1A, s1B)
 	}
 }
