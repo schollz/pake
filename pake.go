@@ -31,12 +31,11 @@ type EllipticCurve interface {
 // Slide 11
 type Pake struct {
 	// Public variables
-	Role           int
-	Uᵤ, Uᵥ         *big.Int
-	Vᵤ, Vᵥ         *big.Int
-	Xᵤ, Xᵥ         *big.Int
-	Yᵤ, Yᵥ         *big.Int
-	Ux, Uy, Vx, Vy *big.Int
+	Role   int
+	Uᵤ, Uᵥ *big.Int
+	Vᵤ, Vᵥ *big.Int
+	Xᵤ, Xᵥ *big.Int
+	Yᵤ, Yᵥ *big.Int
 
 	// Private variables
 	curve      EllipticCurve
@@ -112,7 +111,7 @@ func initCurve(curve string) (ellipticCurve EllipticCurve, Ux *big.Int, Uy *big.
 // The curve can be any elliptic curve.
 func InitCurve(pw []byte, role int, curve string) (p *Pake, err error) {
 	p = new(Pake)
-	p.curve, p.Ux, p.Uy, p.Vx, p.Vy, err = initCurve(curve)
+	p.curve, p.Uᵤ, p.Uᵥ, p.Vᵤ, p.Vᵥ, err = initCurve(curve)
 	if err != nil {
 		return
 	}
@@ -121,16 +120,6 @@ func InitCurve(pw []byte, role int, curve string) (p *Pake, err error) {
 		p.Role = 1
 	} else {
 		p.Role = 0
-		p.Uᵤ, p.Uᵥ = p.Ux, p.Uy
-		p.Vᵤ, p.Vᵥ = p.Vx, p.Vy
-		if !p.curve.IsOnCurve(p.Uᵤ, p.Uᵥ) {
-			err = errors.New("U values not on curve")
-			return
-		}
-		if !p.curve.IsOnCurve(p.Vᵤ, p.Vᵥ) {
-			err = errors.New("V values not on curve")
-			return
-		}
 
 		// STEP: A computes X
 		p.Vpwᵤ, p.Vpwᵥ = p.curve.ScalarMult(p.Vᵤ, p.Vᵥ, p.Pw)
@@ -180,17 +169,11 @@ func (p *Pake) Update(qBytes []byte) (err error) {
 
 	if p.Role == 1 {
 		// copy over public variables
-		p.Uᵤ, p.Uᵥ = q.Uᵤ, q.Uᵥ
-		p.Vᵤ, p.Vᵥ = q.Vᵤ, q.Vᵥ
 		p.Xᵤ, p.Xᵥ = q.Xᵤ, q.Xᵥ
 
-		// // confirm that U,V are on curve
-		if !p.curve.IsOnCurve(p.Uᵤ, p.Uᵥ) {
-			err = errors.New("U values not on curve")
-			return
-		}
-		if !p.curve.IsOnCurve(p.Vᵤ, p.Vᵥ) {
-			err = errors.New("V values not on curve")
+		// confirm that X is on curve
+		if !p.curve.IsOnCurve(p.Xᵤ, p.Xᵥ) {
+			err = errors.New("X values not on curve")
 			return
 		}
 
@@ -218,6 +201,12 @@ func (p *Pake) Update(qBytes []byte) (err error) {
 		p.K = HB.Sum(nil)
 	} else {
 		p.Yᵤ, p.Yᵥ = q.Yᵤ, q.Yᵥ
+
+		// confirm that Y is on curve
+		if !p.curve.IsOnCurve(p.Yᵤ, p.Yᵥ) {
+			err = errors.New("Y values not on curve")
+			return
+		}
 
 		// STEP: A computes Z
 		p.Zᵤ, p.Zᵥ = p.curve.Add(p.Yᵤ, p.Yᵥ, p.Vpwᵤ, new(big.Int).Neg(p.Vpwᵥ))
