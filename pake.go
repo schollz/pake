@@ -124,7 +124,7 @@ func InitCurve(pw []byte, role int, curve string) (p *Pake, err error) {
 		// STEP: A computes X
 		p.Vpwᵤ, p.Vpwᵥ = p.curve.ScalarMult(p.Vᵤ, p.Vᵥ, p.Pw)
 		p.Upwᵤ, p.Upwᵥ = p.curve.ScalarMult(p.Uᵤ, p.Uᵥ, p.Pw)
-		p.Aα = make([]byte, 8) // randomly generated secret
+		p.Aα = make([]byte, 32) // randomly generated secret
 		_, err = rand.Read(p.Aα)
 		if err != nil {
 			return
@@ -180,7 +180,7 @@ func (p *Pake) Update(qBytes []byte) (err error) {
 		// STEP: B computes Y
 		p.Vpwᵤ, p.Vpwᵥ = p.curve.ScalarMult(p.Vᵤ, p.Vᵥ, p.Pw)
 		p.Upwᵤ, p.Upwᵥ = p.curve.ScalarMult(p.Uᵤ, p.Uᵥ, p.Pw)
-		p.Aα = make([]byte, 8) // randomly generated secret
+		p.Aα = make([]byte, 32) // randomly generated secret
 		rand.Read(p.Aα)
 		p.Aαᵤ, p.Aαᵥ = p.curve.ScalarBaseMult(p.Aα)
 		p.Yᵤ, p.Yᵥ = p.curve.Add(p.Vpwᵤ, p.Vpwᵥ, p.Aαᵤ, p.Aαᵥ) // "Y"
