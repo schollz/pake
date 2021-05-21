@@ -47,7 +47,7 @@ if err != nil {
 
 // both P and Q now have strong key generated from weak key
 kA, _ := A.SessionKey()
-kB, _ := A.SessionKey()
+kB, _ := B.SessionKey()
 fmt.Println(bytes.Equal(kA, kB))
 // Output: true
 ```
