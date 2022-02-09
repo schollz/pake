@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func ExampleUsage() {
@@ -44,28 +42,41 @@ func ExampleUsage() {
 
 func TestBadCurve(t *testing.T) {
 	_, err := InitCurve([]byte{1, 2, 3}, 0, "bad")
-	assert.NotNil(t, err)
+	if err == nil {
+		t.Errorf("curve should not exist!")
+	}
 }
 
 func TestSessionKeyString(t *testing.T) {
 	for _, curve := range AvailableCurves() {
+		fmt.Printf("testing curve '%s'\n", curve)
 		A, err := InitCurve([]byte{1, 2, 3}, 0, curve)
-		assert.Nil(t, err)
+		if err != nil {
+			t.Errorf("%s", err)
+		}
 		// initialize B
 		B, err := InitCurve([]byte{1, 2, 3}, 1, curve)
-		assert.Nil(t, err)
+		if err != nil {
+			t.Errorf("%s", err)
+		}
 		// send A's stuff to B
 		B.Update(A.Bytes())
 		// send B's stuff to A
 		A.Update(B.Bytes())
 
 		s1A, err := A.SessionKey()
-		assert.Nil(t, err)
+		if err != nil {
+			t.Errorf("%s", err)
+		}
 		s1B, err := B.SessionKey()
-		assert.Nil(t, err)
+		if err != nil {
+			t.Errorf("%s", err)
+		}
 		fmt.Printf("A) K=%x\n", s1A)
 		fmt.Printf("B) K=%x\n", s1B)
-		assert.Equal(t, s1A, s1B)
+		if !bytes.Equal(s1A, s1B) {
+			t.Errorf("keys not equal")
+		}
 
 		// test using incorrect password
 		// initialize A
@@ -78,9 +89,15 @@ func TestSessionKeyString(t *testing.T) {
 		A.Update(B.Bytes())
 
 		s1A, err = A.SessionKey()
-		assert.Nil(t, err)
+		if err != nil {
+			t.Errorf("%s", err)
+		}
 		s1B, err = B.SessionKey()
-		assert.Nil(t, err)
-		assert.NotEqual(t, s1A, s1B)
+		if err != nil {
+			t.Errorf("%s", err)
+		}
+		if bytes.Equal(s1A, s1B) {
+			t.Errorf("keys should not be equal")
+		}
 	}
 }
