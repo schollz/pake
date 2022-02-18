@@ -39,6 +39,7 @@ type Pake struct {
 
 	// Private variables
 	curve      EllipticCurve
+	P          *big.Int // the order of the underlying field
 	Pw         []byte
 	Vpwᵤ, Vpwᵥ *big.Int
 	Upwᵤ, Upwᵥ *big.Int
@@ -72,7 +73,7 @@ func AvailableCurves() []string {
 // the points on the elliptic curve. The role is set to either
 // 0 for the sender or 1 for the recipient.
 // The curve can be siec,  p521, p256, p384
-func initCurve(curve string) (ellipticCurve EllipticCurve, Ux *big.Int, Uy *big.Int, Vx *big.Int, Vy *big.Int, err error) {
+func initCurve(curve string) (ellipticCurve EllipticCurve, P *big.Int, Ux *big.Int, Uy *big.Int, Vx *big.Int, Vy *big.Int, err error) {
 	switch curve {
 	case "p521":
 		ellipticCurve = elliptic.P521()
@@ -80,24 +81,28 @@ func initCurve(curve string) (ellipticCurve EllipticCurve, Ux *big.Int, Uy *big.
 		Uy, _ = new(big.Int).SetString("4032821203812196944795502391345776760852202059010382256134592838722123385325802540879231526503456158741518531456199762365161310489884151533417829496019094620", 10)
 		Vx, _ = new(big.Int).SetString("1086685267857089638167386722555472967068468061489", 10)
 		Vy, _ = new(big.Int).SetString("5010916268086655347194655708160715195931018676225831839835602465999566066450501167246678404591906342753230577187831311039273858772817427392089150297708931207", 10)
+		P = elliptic.P521().Params().P
 	case "p256":
 		ellipticCurve = elliptic.P256()
 		Ux, _ = new(big.Int).SetString("793136080485469241208656611513609866400481671852", 10)
 		Uy, _ = new(big.Int).SetString("59748757929350367369315811184980635230185250460108398961713395032485227207304", 10)
 		Vx, _ = new(big.Int).SetString("1086685267857089638167386722555472967068468061489", 10)
 		Vy, _ = new(big.Int).SetString("9157340230202296554417312816309453883742349874205386245733062928888341584123", 10)
+		P = elliptic.P256().Params().P
 	case "p384":
 		ellipticCurve = elliptic.P384()
 		Ux, _ = new(big.Int).SetString("793136080485469241208656611513609866400481671852", 10)
 		Uy, _ = new(big.Int).SetString("7854890799382392388170852325516804266858248936799429260403044177981810983054351714387874260245230531084533936948596", 10)
 		Vx, _ = new(big.Int).SetString("1086685267857089638167386722555472967068468061489", 10)
 		Vy, _ = new(big.Int).SetString("21898206562669911998235297167979083576432197282633635629145270958059347586763418294901448537278960988843108277491616", 10)
+		P = elliptic.P384().Params().P
 	case "siec":
 		ellipticCurve = siec.SIEC255()
 		Ux, _ = new(big.Int).SetString("793136080485469241208656611513609866400481671853", 10)
 		Uy, _ = new(big.Int).SetString("18458907634222644275952014841865282643645472623913459400556233196838128612339", 10)
 		Vx, _ = new(big.Int).SetString("1086685267857089638167386722555472967068468061489", 10)
 		Vy, _ = new(big.Int).SetString("19593504966619549205903364028255899745298716108914514072669075231742699650911", 10)
+		P = siec.SIEC255().Params().P
 	default:
 		err = errors.New("no such curve")
 		return
@@ -110,6 +115,7 @@ func initCurve(curve string) (ellipticCurve EllipticCurve, Ux *big.Int, Uy *big.
 			err = fmt.Errorf("Vx/Vy not on curve")
 		}
 	}
+
 	return
 }
 
@@ -119,7 +125,8 @@ func initCurve(curve string) (ellipticCurve EllipticCurve, Ux *big.Int, Uy *big.
 // The curve can be any elliptic curve.
 func InitCurve(pw []byte, role int, curve string) (p *Pake, err error) {
 	p = new(Pake)
-	p.curve, p.Uᵤ, p.Uᵥ, p.Vᵤ, p.Vᵥ, err = initCurve(curve)
+	p.curve, p.P, p.Uᵤ, p.Uᵥ, p.Vᵤ, p.Vᵥ, err = initCurve(curve)
+
 	if err != nil {
 		return
 	}
@@ -132,13 +139,23 @@ func InitCurve(pw []byte, role int, curve string) (p *Pake, err error) {
 		// STEP: A computes X
 		p.Vpwᵤ, p.Vpwᵥ = p.curve.ScalarMult(p.Vᵤ, p.Vᵥ, p.Pw)
 		p.Upwᵤ, p.Upwᵥ = p.curve.ScalarMult(p.Uᵤ, p.Uᵥ, p.Pw)
+		p.Vpwᵤ.Mod(p.Vpwᵤ, p.P)
+		p.Vpwᵥ.Mod(p.Vpwᵥ, p.P)
+		p.Upwᵥ.Mod(p.Upwᵥ, p.P)
+		p.Upwᵤ.Mod(p.Upwᵤ, p.P)
+
 		p.Aα = make([]byte, 32) // randomly generated secret
 		_, err = rand.Read(p.Aα)
 		if err != nil {
 			return
 		}
 		p.Aαᵤ, p.Aαᵥ = p.curve.ScalarBaseMult(p.Aα)
+		p.Aαᵤ.Mod(p.Aαᵤ, p.P)
+		p.Aαᵥ.Mod(p.Aαᵥ, p.P)
 		p.Xᵤ, p.Xᵥ = p.curve.Add(p.Upwᵤ, p.Upwᵥ, p.Aαᵤ, p.Aαᵥ) // "X"
+		p.Xᵤ.Mod(p.Xᵤ, p.P)
+		p.Xᵥ.Mod(p.Xᵥ, p.P)
+
 		// now X should be sent to B
 	}
 	return
@@ -178,6 +195,8 @@ func (p *Pake) Update(qBytes []byte) (err error) {
 	if p.Role == 1 {
 		// copy over public variables
 		p.Xᵤ, p.Xᵥ = q.Xᵤ, q.Xᵥ
+		p.Xᵤ.Mod(p.Xᵤ, p.P)
+		p.Xᵥ.Mod(p.Xᵥ, p.P)
 
 		// confirm that X is on curve
 		if !p.curve.IsOnCurve(p.Xᵤ, p.Xᵥ) {
@@ -186,15 +205,28 @@ func (p *Pake) Update(qBytes []byte) (err error) {
 		}
 
 		// STEP: B computes Y
+		p.Vᵤ.Mod(p.Vᵤ, p.P)
+		p.Vᵥ.Mod(p.Vᵥ, p.P)
+		p.Uᵤ.Mod(p.Uᵤ, p.P)
+		p.Uᵥ.Mod(p.Uᵥ, p.P)
 		p.Vpwᵤ, p.Vpwᵥ = p.curve.ScalarMult(p.Vᵤ, p.Vᵥ, p.Pw)
+		p.Vpwᵤ.Mod(p.Vpwᵤ, p.P)
+		p.Vpwᵥ.Mod(p.Vpwᵥ, p.P)
 		p.Upwᵤ, p.Upwᵥ = p.curve.ScalarMult(p.Uᵤ, p.Uᵥ, p.Pw)
+		p.Upwᵥ.Mod(p.Upwᵥ, p.P)
+		p.Upwᵤ.Mod(p.Upwᵤ, p.P)
 		p.Aα = make([]byte, 32) // randomly generated secret
 		rand.Read(p.Aα)
 		p.Aαᵤ, p.Aαᵥ = p.curve.ScalarBaseMult(p.Aα)
+		p.Aαᵤ.Mod(p.Aαᵤ, p.P)
+		p.Aαᵥ.Mod(p.Aαᵥ, p.P)
 		p.Yᵤ, p.Yᵥ = p.curve.Add(p.Vpwᵤ, p.Vpwᵥ, p.Aαᵤ, p.Aαᵥ) // "Y"
 		// STEP: B computes Z
 		p.Zᵤ, p.Zᵥ = p.curve.Add(p.Xᵤ, p.Xᵥ, p.Upwᵤ, new(big.Int).Neg(p.Upwᵥ))
 		p.Zᵤ, p.Zᵥ = p.curve.ScalarMult(p.Zᵤ, p.Zᵥ, p.Aα)
+		p.Zᵤ.Mod(p.Zᵤ, p.P)
+		p.Zᵥ.Mod(p.Zᵥ, p.P)
+
 		// STEP: B computes k
 		// H(pw,id_P,id_Q,X,Y,Z)
 		HB := sha256.New()
@@ -217,8 +249,16 @@ func (p *Pake) Update(qBytes []byte) (err error) {
 		}
 
 		// STEP: A computes Z
+		p.Yᵤ.Mod(p.Yᵤ, p.P)
+		p.Yᵥ.Mod(p.Yᵥ, p.P)
+		p.Vpwᵤ.Mod(p.Vpwᵤ, p.P)
+		p.Vpwᵥ.Mod(p.Vpwᵥ, p.P)
+
 		p.Zᵤ, p.Zᵥ = p.curve.Add(p.Yᵤ, p.Yᵥ, p.Vpwᵤ, new(big.Int).Neg(p.Vpwᵥ))
 		p.Zᵤ, p.Zᵥ = p.curve.ScalarMult(p.Zᵤ, p.Zᵥ, p.Aα)
+		p.Zᵤ.Mod(p.Zᵤ, p.P)
+		p.Zᵥ.Mod(p.Zᵥ, p.P)
+
 		// STEP: A computes k
 		// H(pw,id_P,id_Q,X,Y,Z)
 		HA := sha256.New()
