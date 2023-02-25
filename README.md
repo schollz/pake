@@ -58,7 +58,7 @@ Each function has an error. The error become non-nil when some part of the algor
 
 ## Hard-coded elliptic curve points
 
-The elliptic curve points are hard-coded to prevent an application from allowing users to supply their own points (which could be backdoors by choosing points with known discrete logs). Public points can be verified [via sage](https://sagecell.sagemath.org/?z=eJzNVk1v3MgRvQvQfyDkw85gJaWrqr9qkQ1AckgjyMXB5mCsYQvNZnc8yFhSZsa7Ehb-73mULNv5wCKLXSDhYdhDVlVX1Xuvmmm3u8rv9z-UQ_Nt89OH05PTk2fNd38c-tOTP13-fnv4-_4of8CrP79P8z4dt3nclt28upD16cntFi_4DXFovsad3cON-OHm8bui5qJ5jLH-HcMB9t9_v7rdXl7f7N-t1utluwEPh91ue4vg_ZLJ6vm4ul2fvzLnpK_XzbNm-Ka5f8Mwu3sjiEp6evJ8cVq9cufErx-ipE91vDo7bEs-e71YLG-WghzTnk5PvsMzc7cxOsRoDCv1XXSivu99oCAqHG3btmbTetu1j_maO0Pj__xCgf8vuYAZ02MuxpE6GTr1FAfqtaVRWVum1nQ-OmuGoeVNG9h1qp2QG6WLnY2qsB8JMJDzpKKOhj4MKqEj77g33Ua6jrrRBHFBNmOMsuFe7EjDaB2NG-s7Z2Q0Bky4e8ylx45xML4Lxho7aL_RQYa-856xQWcta-9tJFHjZOzAiDFybEcPF7uRTde2ZDs3hDCMQ3DKcRxo04PcLY9jGzeDiI2d9BSdbxGtGzUMYRDqeXDdxnvkcv-IEUVBI3wborbS9cZY18fWjZ3lPmyo26jG0Vlr1QVFaj5SaMduQ4GDDMi4R-ghsKpDweyt6Z0znRqSsd2Y4Emc9MFE33Lgnq2JsRvUBq_jhrx36Mv1b8WX1lH0MUTpRh7Vo8Fj3xuycQxGW7cxwMr12kXg2tvQDl3nxy7QoCQRqevPijydT4uAv5TviwuA81m_z5oXF-z8oxqJ0DE2UZmMOM82Bs9eA3qoVq0J4IsTg86QFUuO1QhZ0NSJeCFBozzSDovsHSbC_r-NCSzUIwyzRfODN2LZMrNT48mAe8TGWvGo9vDQ-Wx1Fr_sV8BIFZ-8D7EQCDizn0IkraEokMoP9qHUKQE71uimgm0lT8a5HNxsYWhyiXO0SbMjsmnKqQqF4KMhY2sy85MqXcpe3BxTkqRSwiRlmmaHlBW5TNk7mo2fTM5OJlO9TLlIlsIBaRk7LYp6COQnCjNVLsQZtYYaYemL85KsNZVDMBLmSDyXSSSZahNqs9haYwb7Fzk8BLK1oFmFa6EUqk6xlFAmm0I2VQt5XjJYejphRJRc8jSBNj5KmKqj6pqfJdCFPDLo44nw_O78-f2_MwoE-mdGSbSPjELKhg1AVI-lBROIOSiGCBmwXKC1aJwJivOBgaSHbj2gVBtZBaOGrQsMKMgqZGIElLOB_QI9u6jwNhAQYc4gBBHLcn7tf9XOHjMMlp6DdxifClIxQPdYRwVAJoL5DPKCqnAC9UH3ZY7IEzsTGq7sQRLSxCGBExAAOBoC4I14kueUg3xip85UvHMVo6AarrXaOOe5FIgLhJqnaBA9E3CbTU5k5lp8zQ71KQ6ChElXInpVkqsQVvWFIooJOQcoKsoTe8Ek4ppCYVlYYsHZYpyfitTIM-HgoFmzL7VE7AzNQd1odHUYjTEs3Ef5CqUkLjCfOUWXY5lnKZlTqZ_YnVIMOTFPJUJmAmVOlAOVKmzSHCwSnGXyHKcUdIImoVZLxQBTy0ki5jFXdjMoitngsyRnXUEOwMSkKXxiP2AMc4FwMVM4--pmLRqnigOCZ-ikxmppnmaOmsiGXHQGKCSTq2aK2ZjkDVJDOgE16xySFayzmpJMcfVXSwNK-PJjafvu9mZ_bN6mw9vddlqezKU2dXs9X93ebK-Pq-H8UMr87XR2tv7m9KTB9RLeeHNZ9zfvrqb7YzmsPrpfHt4mWi3268t5-9dyOK7W52e77fG4K2frR-8f3253pfnL_n35GG65jvv7L_4t174c3--vm-Fyt63Hq7vVcDmlQ7mqD5-j69XL9fry7n61_uxU7nK5Pf5LlJfN1xj4S1XLv9OTerNv_lbuzwcU0Hzuy-X2WN4dVk8F3u6XwusZLJevZNw-nDcvluV_6MtXeX-T-av1h6cCf7k3PXj_AxzM6dk=&lang=sage&interacts=eJyLjgUAARUAuQ==) using hashes of `croc1` and `croc2`:
+The elliptic curve points are hard-coded to prevent an application from allowing users to supply their own points (which could be backdoors by choosing points with known discrete logs). Public points can be verified [via sage](https://sagecell.sagemath.org/?z=eJzNVl1v3NYRfReg_0DID9lFJPXOzP0M6gIklwyKvDhIH4wEtnE_60XWkrq7TiUU_u89lCzZaYOgbQq0fFhyybnnzsw5Z8i4273J7_c_1UP3vPvbh9OT05Nn3Xd_nMbTk28uf789_GV_lD_g0bfvY9nH4zbP27orqwtZn57cbPGAXxO77kuc2dyfiO9PFr8r6i66B4z17xgLEP_996ub7eXV9f7dar1etptwc9rttjcAH5dMVl_Pq5v1-Q_qnMKrdfesm77q7l4zwm5fC1ApnJ7Ep7R_ODtsaz57taAscEv-hmlPpyff4Z663agwea8UBxoHbyTYcbSOnARhr_u-V5ve6qF_SE_dKpr_5wcK_H_JBUJID7koQ8HINARLfqIx9DQHDj1TrwbrjVbT1POmd2yGEAYhM8vgB-1DQPxMoIGMpSDB0DS6KYgbyBoe1bCRYaBhVk6Mk83svWx4FD3TNGtD80bbwSiZlTo9-fr2IZcRO_pJ2cEprfQUxk2YZBoHaxkbDFpzGK32JEEZmQcoYvbs-9liid7IZuh70oOZnJvmyZnAfp5oM0LLPc9z7zeTiPaDjOSN7YE2zMFNbhIaeTLDxlrkcvfAEXlBI2zvfOhlGJXSZvS9mQfNo9vQsAnBz0ZrHYwLSM16cv08bMixkwkZj4CeHIdgUDBbrUZj1BAUydxvlLMkRkanvO3Z8chaeT9MQTsb5g1Za9CXq_-WXnpD3nrnZZh5DhYNnsdRkfazU6E3GwWuzBgGD15H7fppGOw8OJoCiUfq4Vc9Hc_Tq_XP7fviAuR88u-z7sUFG_vgRiJ0jJUPTEqMZe2dZRscehh00MpBL0YUOkNaNBkOSkhDpkbECgkaZZG2W2xvMBH2_yomuAgWMMwazXdWiWbNzCYoSwraI1Zai0W1h_vOZx2K2GW_CkUGsdFa5ytBgIVtcp5CczWAqXwf72pLEdxx8CZVbCs5KWOyM0UjUOXqi9cxZEOkY8qxCTlnvSKlW1Tl0ZUmZium-BglBqkuSU2pGKQckEvK1lBRNqmcjSTVrKRcJUtlh7SUTouj7oFsIleocSXOqNU1j0hbjZWotWrsnBJXPHGpSSSqpiNq09g6-Az1L3a4B9KtolmVW6XoWki-VleTji6rFipZXjJYepowImquOSXIxnpxqRlqpvtVAV3ILykIgvm5gsTrBwUhRcUKpAWLSw3midkFDA1SULXAW14Z5QLeBwzmLHxqQV3QnoNgtLA2jtF60gG2UAKJacd2oZqND1itYBjCXAEEEcvyetr_pp0tZhYiLTtrMC4DRMQg2eLaBxCiPJTOECukiUWQOuS9zA15VGNEgwNbiIJCZBehAQgemnQOdHrcySVmJ09qDIWqNabB-k1xa037kkutMBMEVJJXQM8EnorKkVRp1bZsUF_A4I-YbNWjVzWaBiM1W8mjGJezg4O8PKoVyiFu0VWWRRUaGq3K2FSleS6EFwWVkG1t1WNneAxuRqObwSj0btE6yg9wRuSK8MLRm-xrKVIzx9qe1Byjdzkyp-phK4ETE2VHtQmrWJxGgkWSZZ-iCwkehDs1VQVONUfxmL_c2BRIErPAZolGm4ocwImKyT2pHTS6UmFUzBDOtpkSavCp4YXABb5ovmkqqbAPkbTLNRSQQpJMU8lnpaJVSA3pONQciotacJ2DqlFV0_4DM0D7n38Obd_dXO-P3dt4eLvbpqf_-3hVrt8tAaW2rm2vypub6-3VcTWdH2otz9PZ2fqr05MOx0uA4cll21-_e5PujvWw-oh2eXgbabXEry_L9s_1cFytz8922-NxV8_WD6v_-na7q92f9u_rR7jlOO7vPvu3HPt6fL-_6qbL3bYd39yupssUD_VNu__cXK9erteXt3er9adF9TbXm-M_oLzsvsSEX6pq1_vux3p3PiH17lODLrfH-u6weiztZr-U3M4QuXz_4vThvHuxXP5CR77I--vMX6w_PJb276-mz1ZjTNxzcLk8X6Wze_Tl4QPsR9Ra2ODD67z7sXt-dt7ttujxx3XL6YEO4fXyMf3PePQb8P4ONjcVKw==&lang=sage&interacts=eJyLjgUAARUAuQ==) using hashes of `croc1` and `croc2`. The `ed25519` curve is not computable on sage, so two unique scalars based on the same seeds are generated and used to create valid points.
 
 ```python
 all_curves = {}
@@ -69,8 +69,6 @@ pi = 2^127 + 2^25 + 2^12 + 2^6 + (1 - isqrt3)/2
 p = ZZ(pi.norm())
 
 E = EllipticCurve(GF(p),[0,19]) # E: y^2 = x^3 + 19
-G = E([5,12])
-
 all_curves["siec"] = E
 
 
@@ -96,7 +94,6 @@ Gx = 0x6b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296
 Gy = 0x4fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5 
 
 E = EllipticCurve(GF(p),[-3,b])
-G = E([Gx,Gy])
 all_curves["P-256"] = E
 
 # P-384
@@ -107,12 +104,13 @@ c = 0x79d1e655f868f02fff48dcdee14151ddb80643c1406d0ca10dfe6fc52009540a495e8042ea
 b = 0xb3312fa7e23ee7e4988e056be3f82d19181d9c6efe8141120314088f5013875ac656398d8a2ed19d2a85c8edd3ec2aef
 Gx = 0xaa87ca22be8b05378eb1c71ef320ad746e1d3b628ba79b9859f741e082542a385502f25dbf55296c3a545e3872760ab7
 Gy = 0x3617de4a96262c6f5d9e98bf9292dc29f8f41dbd289a147ce9da3113b5f0b8c00a60b1ce1d7e819d7a431d7c90ea0e5f
+
 E = EllipticCurve(GF(p),[-3,b])
-G = E([Gx,Gy])
 all_curves["P-384"] = E
 
 
 import hashlib
+import random
 
 def find_point(E,seed=b""):
     X = int.from_bytes(hashlib.sha1(seed).digest(),"little")
@@ -122,15 +120,19 @@ def find_point(E,seed=b""):
         except:
             X += 1
 
-    
 for key,E in all_curves.items():
     print(f"key = {key}, P = {find_point(E,seed=b'croc2')}")
     print(f"key = {key}, P = {find_point(E,seed=b'croc1')}")
+    
+random.seed(b"croc2")
+print("key = ed25519, k =", list(random.randbytes(32)))
+random.seed(b"croc1")
+print("key = ed25519, k =", list(random.randbytes(32)))
 ```
 
-which returns
+returns
 
-```
+```plain
 key = siec, P = (793136080485469241208656611513609866400481671853, 18458907634222644275952014841865282643645472623913459400556233196838128612339)
 key = siec, P = (1086685267857089638167386722555472967068468061489, 19593504966619549205903364028255899745298716108914514072669075231742699650911)
 key = P-521, P = (793136080485469241208656611513609866400481671852, 4032821203812196944795502391345776760852202059010382256134592838722123385325802540879231526503456158741518531456199762365161310489884151533417829496019094620)
@@ -139,9 +141,11 @@ key = P-256, P = (793136080485469241208656611513609866400481671852, 597487579293
 key = P-256, P = (1086685267857089638167386722555472967068468061489, 9157340230202296554417312816309453883742349874205386245733062928888341584123)
 key = P-384, P = (793136080485469241208656611513609866400481671852, 7854890799382392388170852325516804266858248936799429260403044177981810983054351714387874260245230531084533936948596)
 key = P-384, P = (1086685267857089638167386722555472967068468061489, 21898206562669911998235297167979083576432197282633635629145270958059347586763418294901448537278960988843108277491616)
+key = ed25519, k = [147, 174, 26, 41, 144, 9, 197, 209, 211, 23, 183, 10, 15, 221, 81, 44, 165, 166, 218, 16, 201, 147, 208, 163, 102, 119, 115, 65, 250, 161, 104, 28]
+key = ed25519, k = [126, 7, 4, 3, 86, 43, 21, 180, 33, 169, 146, 110, 150, 189, 241, 44, 168, 144, 217, 89, 164, 250, 175, 0, 230, 234, 212, 118, 100, 40, 175, 211]
 ```
 
-which are the points used [in the code](https://github.com/schollz/pake/blob/master/pake.go#L76-L107).
+which are the points used [in the code](pake.go#L77-L113).
 
 ## Contributing
 

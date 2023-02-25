@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"filippo.io/edwards25519"
 	"github.com/tscholl2/siec"
 )
 
@@ -66,7 +67,7 @@ func (p *Pake) Public() *Pake {
 
 // AvailableCurves returns available curves
 func AvailableCurves() []string {
-	return []string{"p521", "p256", "p384", "siec"}
+	return []string{"p521", "p256", "p384", "siec", "ed25519"}
 }
 
 // InitCurve will take the secret weak passphrase (pw) to initialize
@@ -103,6 +104,13 @@ func initCurve(curve string) (ellipticCurve EllipticCurve, P *big.Int, Ux *big.I
 		Vx, _ = new(big.Int).SetString("1086685267857089638167386722555472967068468061489", 10)
 		Vy, _ = new(big.Int).SetString("19593504966619549205903364028255899745298716108914514072669075231742699650911", 10)
 		P = siec.SIEC255().Params().P
+	case "ed25519":
+		ellipticCurve = ED25519()
+		k1, _ := new(edwards25519.Scalar).SetBytesWithClamping([]byte{147, 174, 26, 41, 144, 9, 197, 209, 211, 23, 183, 10, 15, 221, 81, 44, 165, 166, 218, 16, 201, 147, 208, 163, 102, 119, 115, 65, 250, 161, 104, 28})
+		k2, _ := new(edwards25519.Scalar).SetBytesWithClamping([]byte{126, 7, 4, 3, 86, 43, 21, 180, 33, 169, 146, 110, 150, 189, 241, 44, 168, 144, 217, 89, 164, 250, 175, 0, 230, 234, 212, 118, 100, 40, 175, 211})
+		Ux, Uy = ED25519().ScalarBaseMult(k1.Bytes())
+		Vx, Vy = ED25519().ScalarBaseMult(k2.Bytes())
+		P = ED25519().P
 	default:
 		err = errors.New("no such curve")
 		return
