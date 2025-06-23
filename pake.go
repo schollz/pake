@@ -194,10 +194,10 @@ func initCurve(curve string) (ellipticCurve EllipticCurve, P *big.Int, Ux *big.I
 		P = siec.SIEC255().Params().P
 	case "ed25519":
 		ellipticCurve = &Edwards25519Curve{}
-		// Use fixed valid Edwards25519 points (2G and 3G)
-		Ux, _ = new(big.Int).SetString("91204593145997059315739529457278811673518357922435538184619627344007785177122", 10)
+		// Use fixed valid Edwards25519 points generated from "croc1" and "croc2" seeds
+		Ux, _ = new(big.Int).SetString("41821174510521985817056358996007359290163947216650231187782646151092828043509", 10)
 		Uy, _ = new(big.Int).SetString("0", 10)
-		Vx, _ = new(big.Int).SetString("96210050541986728744872095836304346001960332115501244783605152685121323755282", 10)
+		Vx, _ = new(big.Int).SetString("1456941786990260824647297143563623381366314063537015067473110401627488371271", 10)
 		Vy, _ = new(big.Int).SetString("0", 10)
 		P, _ = new(big.Int).SetString("57896044618658097711785492504343953926634992332820282019728792003956564819949", 10)
 	default:
