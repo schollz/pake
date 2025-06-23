@@ -199,6 +199,7 @@ func initCurve(curve string) (ellipticCurve EllipticCurve, P *big.Int, Ux *big.I
 		Uy, _ = new(big.Int).SetString("0", 10)
 		Vx, _ = new(big.Int).SetString("1456941786990260824647297143563623381366314063537015067473110401627488371271", 10)
 		Vy, _ = new(big.Int).SetString("0", 10)
+		// 2^255 - 19
 		P, _ = new(big.Int).SetString("57896044618658097711785492504343953926634992332820282019728792003956564819949", 10)
 	default:
 		err = errors.New("no such curve")
@@ -329,7 +330,7 @@ func (p *Pake) Update(qBytes []byte) (err error) {
 
 		// STEP: A computes Z
 		if ed25519Curve, ok := p.curve.(*Edwards25519Curve); ok {
-			// For Edwards25519, use proper subtraction  
+			// For Edwards25519, use proper subtraction
 			p.Zᵤ, p.Zᵥ = ed25519Curve.Subtract(p.Yᵤ, p.Yᵥ, p.Vpwᵤ, p.Vpwᵥ)
 		} else {
 			// For other curves, use the original negation method
