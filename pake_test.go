@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func ExampleUsage() {
+func Example() {
 	// both parties should have a weak key
 	weakKey := []byte{1, 2, 3}
 
@@ -35,7 +35,7 @@ func ExampleUsage() {
 
 	// both P and Q now have session key
 	kA, _ := A.SessionKey()
-	kB, _ := A.SessionKey()
+	kB, _ := B.SessionKey()
 	fmt.Println(bytes.Equal(kA, kB))
 	// Output: true
 }
