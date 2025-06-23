@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"filippo.io/edwards25519"
 	"github.com/tscholl2/siec"
 )
 
@@ -19,6 +20,94 @@ type EllipticCurve interface {
 	ScalarBaseMult(k []byte) (*big.Int, *big.Int)
 	ScalarMult(Bx, By *big.Int, k []byte) (*big.Int, *big.Int)
 	IsOnCurve(x, y *big.Int) bool
+}
+
+// Edwards25519Curve implements EllipticCurve interface for Edwards25519
+// It stores the full 32-byte Edwards25519 point in the x coordinate
+// and uses y coordinate to indicate negation for subtraction
+type Edwards25519Curve struct{}
+
+func (e *Edwards25519Curve) Add(x1, y1, x2, y2 *big.Int) (*big.Int, *big.Int) {
+	p1, err1 := (&edwards25519.Point{}).SetBytes(ed25519PointFromBigInts(x1, y1))
+	p2, err2 := (&edwards25519.Point{}).SetBytes(ed25519PointFromBigInts(x2, y2))
+	if err1 != nil || err2 != nil {
+		return big.NewInt(0), big.NewInt(0)
+	}
+	result := (&edwards25519.Point{}).Add(p1, p2)
+	return ed25519PointToBigInts(result.Bytes())
+}
+
+// Subtract performs point subtraction for Edwards25519
+func (e *Edwards25519Curve) Subtract(x1, y1, x2, y2 *big.Int) (*big.Int, *big.Int) {
+	p1, err1 := (&edwards25519.Point{}).SetBytes(ed25519PointFromBigInts(x1, y1))
+	p2, err2 := (&edwards25519.Point{}).SetBytes(ed25519PointFromBigInts(x2, y2))
+	if err1 != nil || err2 != nil {
+		return big.NewInt(0), big.NewInt(0)
+	}
+	result := (&edwards25519.Point{}).Subtract(p1, p2)
+	return ed25519PointToBigInts(result.Bytes())
+}
+
+func (e *Edwards25519Curve) ScalarBaseMult(k []byte) (*big.Int, *big.Int) {
+	key := normalizeScalar(k)
+	scalar, err := (&edwards25519.Scalar{}).SetBytesWithClamping(key)
+	if err != nil {
+		return big.NewInt(0), big.NewInt(0)
+	}
+	point := (&edwards25519.Point{}).ScalarBaseMult(scalar)
+	return ed25519PointToBigInts(point.Bytes())
+}
+
+func (e *Edwards25519Curve) ScalarMult(Bx, By *big.Int, k []byte) (*big.Int, *big.Int) {
+	point, err1 := (&edwards25519.Point{}).SetBytes(ed25519PointFromBigInts(Bx, By))
+	if err1 != nil {
+		return big.NewInt(0), big.NewInt(0)
+	}
+	key := normalizeScalar(k)
+	scalar, err2 := (&edwards25519.Scalar{}).SetBytesWithClamping(key)
+	if err2 != nil {
+		return big.NewInt(0), big.NewInt(0)
+	}
+	result := (&edwards25519.Point{}).ScalarMult(scalar, point)
+	return ed25519PointToBigInts(result.Bytes())
+}
+
+func (e *Edwards25519Curve) IsOnCurve(x, y *big.Int) bool {
+	_, err := (&edwards25519.Point{}).SetBytes(ed25519PointFromBigInts(x, y))
+	return err == nil
+}
+
+// normalizeScalar ensures the scalar is exactly 32 bytes
+func normalizeScalar(k []byte) []byte {
+	key := make([]byte, 32)
+	if len(k) >= 32 {
+		copy(key, k[:32])
+	} else {
+		copy(key[32-len(k):], k)
+	}
+	return key
+}
+
+// ed25519PointFromBigInts converts big.Int coordinates back to Edwards25519 point bytes
+func ed25519PointFromBigInts(x, y *big.Int) []byte {
+	// The point is stored entirely in x, y is ignored for Edwards25519
+	bytes := make([]byte, 32)
+	xBytes := x.Bytes()
+	if len(xBytes) <= 32 {
+		copy(bytes[32-len(xBytes):], xBytes)
+	}
+	return bytes
+}
+
+// ed25519PointToBigInts converts Edwards25519 point bytes to big.Int coordinates
+func ed25519PointToBigInts(pointBytes []byte) (*big.Int, *big.Int) {
+	if len(pointBytes) != 32 {
+		return big.NewInt(0), big.NewInt(0)
+	}
+	// Store the entire point in x coordinate, y is always 0
+	x := new(big.Int).SetBytes(pointBytes)
+	y := big.NewInt(0)
+	return x, y
 }
 
 // Pake keeps public and private variables by
@@ -66,7 +155,7 @@ func (p *Pake) Public() *Pake {
 
 // AvailableCurves returns available curves
 func AvailableCurves() []string {
-	return []string{"p521", "p256", "p384", "siec"}
+	return []string{"p521", "p256", "p384", "siec", "ed25519"}
 }
 
 // InitCurve will take the secret weak passphrase (pw) to initialize
@@ -103,6 +192,14 @@ func initCurve(curve string) (ellipticCurve EllipticCurve, P *big.Int, Ux *big.I
 		Vx, _ = new(big.Int).SetString("1086685267857089638167386722555472967068468061489", 10)
 		Vy, _ = new(big.Int).SetString("19593504966619549205903364028255899745298716108914514072669075231742699650911", 10)
 		P = siec.SIEC255().Params().P
+	case "ed25519":
+		ellipticCurve = &Edwards25519Curve{}
+		// Use fixed valid Edwards25519 points (2G and 3G)
+		Ux, _ = new(big.Int).SetString("91204593145997059315739529457278811673518357922435538184619627344007785177122", 10)
+		Uy, _ = new(big.Int).SetString("0", 10)
+		Vx, _ = new(big.Int).SetString("96210050541986728744872095836304346001960332115501244783605152685121323755282", 10)
+		Vy, _ = new(big.Int).SetString("0", 10)
+		P, _ = new(big.Int).SetString("57896044618658097711785492504343953926634992332820282019728792003956564819949", 10)
 	default:
 		err = errors.New("no such curve")
 		return
@@ -199,9 +296,15 @@ func (p *Pake) Update(qBytes []byte) (err error) {
 		p.Aαᵤ, p.Aαᵥ = p.curve.ScalarBaseMult(p.Aα)
 		p.Yᵤ, p.Yᵥ = p.curve.Add(p.Vpwᵤ, p.Vpwᵥ, p.Aαᵤ, p.Aαᵥ) // "Y"
 		// STEP: B computes Z
-		v := new(big.Int).Neg(p.Upwᵥ)
-		v.Mod(v, p.P)
-		p.Zᵤ, p.Zᵥ = p.curve.Add(p.Xᵤ, p.Xᵥ, p.Upwᵤ, v)
+		if ed25519Curve, ok := p.curve.(*Edwards25519Curve); ok {
+			// For Edwards25519, use proper subtraction
+			p.Zᵤ, p.Zᵥ = ed25519Curve.Subtract(p.Xᵤ, p.Xᵥ, p.Upwᵤ, p.Upwᵥ)
+		} else {
+			// For other curves, use the original negation method
+			v := new(big.Int).Neg(p.Upwᵥ)
+			v.Mod(v, p.P)
+			p.Zᵤ, p.Zᵥ = p.curve.Add(p.Xᵤ, p.Xᵥ, p.Upwᵤ, v)
+		}
 		p.Zᵤ, p.Zᵥ = p.curve.ScalarMult(p.Zᵤ, p.Zᵥ, p.Aα)
 		// STEP: B computes k
 		// H(pw,id_P,id_Q,X,Y,Z)
@@ -225,9 +328,15 @@ func (p *Pake) Update(qBytes []byte) (err error) {
 		}
 
 		// STEP: A computes Z
-		v := new(big.Int).Neg(p.Vpwᵥ)
-		v.Mod(v, p.P)
-		p.Zᵤ, p.Zᵥ = p.curve.Add(p.Yᵤ, p.Yᵥ, p.Vpwᵤ, v)
+		if ed25519Curve, ok := p.curve.(*Edwards25519Curve); ok {
+			// For Edwards25519, use proper subtraction  
+			p.Zᵤ, p.Zᵥ = ed25519Curve.Subtract(p.Yᵤ, p.Yᵥ, p.Vpwᵤ, p.Vpwᵥ)
+		} else {
+			// For other curves, use the original negation method
+			v := new(big.Int).Neg(p.Vpwᵥ)
+			v.Mod(v, p.P)
+			p.Zᵤ, p.Zᵥ = p.curve.Add(p.Yᵤ, p.Yᵥ, p.Vpwᵤ, v)
+		}
 		p.Zᵤ, p.Zᵥ = p.curve.ScalarMult(p.Zᵤ, p.Zᵥ, p.Aα)
 		// STEP: A computes k
 		// H(pw,id_P,id_Q,X,Y,Z)
