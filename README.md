@@ -1,6 +1,6 @@
 # pake
 
-[![travis](https://travis-ci.org/schollz/pake.svg?branch=master)](https://travis-ci.org/schollz/pake) 
+[![build workflow](https://github.com/schollz/pake/actions/workflows/ci.yml/badge.svg)](https://github.com/schollz/pake/actions/workflows/test.yml) 
 [![go report card](https://goreportcard.com/badge/github.com/schollz/pake)](https://goreportcard.com/report/github.com/schollz/pake)
 [![Coverage Status](https://coveralls.io/repos/github/schollz/pake/badge.svg)](https://coveralls.io/github/schollz/pake)
 [![godocs](https://godoc.org/github.com/schollz/pake?status.svg)](https://godoc.org/github.com/schollz/pake) 
