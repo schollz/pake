@@ -23,12 +23,12 @@ go get -u github.com/schollz/pake/v3
 weakKey := []byte{1, 2, 3}
 
 // initialize A
-A, err := pake.InitCurve(weakKey, 0, "siec")
+A, err := pake.InitCurve(weakKey, 0, pake.CurveSIEC)
 if err != nil {
     panic(err)
 }
 // initialize B
-B, err := pake.InitCurve(weakKey, 1, "siec")
+B, err := pake.InitCurve(weakKey, 1, pake.CurveSIEC)
 if err != nil {
     panic(err)
 }
