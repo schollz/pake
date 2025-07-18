@@ -50,11 +50,11 @@ func TestBadCurve(t *testing.T) {
 
 func TestInvalidInputs(t *testing.T) {
 	tests := []struct {
-		name     string
-		pw       []byte
-		role     int
-		curve    string
-		wantErr  bool
+		name    string
+		pw      []byte
+		role    int
+		curve   string
+		wantErr bool
 	}{
 		{"nil password", nil, 0, "p256", false},
 		{"empty password", []byte{}, 0, "p256", false},

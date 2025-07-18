@@ -205,15 +205,13 @@ func initCurve(curve string) (ellipticCurve EllipticCurve, P *big.Int, Ux *big.I
 		err = errors.New("no such curve")
 		return
 	}
-	if err == nil {
-		if !ellipticCurve.IsOnCurve(Ux, Uy) {
-			err = fmt.Errorf("Ux/Uy not on curve")
-		}
-		if !ellipticCurve.IsOnCurve(Vx, Vy) {
-			err = fmt.Errorf("Vx/Vy not on curve")
-		}
-	}
 
+	if !ellipticCurve.IsOnCurve(Ux, Uy) {
+		err = fmt.Errorf("Ux/Uy not on curve")
+	}
+	if !ellipticCurve.IsOnCurve(Vx, Vy) {
+		err = fmt.Errorf("Vx/Vy not on curve")
+	}
 	return
 }
 
