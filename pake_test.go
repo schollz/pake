@@ -12,12 +12,12 @@ func Example() {
 	weakKey := []byte{1, 2, 3}
 
 	// initialize A
-	A, err := InitCurve(weakKey, 0, "siec")
+	A, err := InitCurve(weakKey, 0, CurveSIEC)
 	if err != nil {
 		panic(err)
 	}
 	// initialize B
-	B, err := InitCurve(weakKey, 1, "siec")
+	B, err := InitCurve(weakKey, 1, CurveSIEC)
 	if err != nil {
 		panic(err)
 	}
@@ -50,19 +50,19 @@ func TestBadCurve(t *testing.T) {
 
 func TestInvalidInputs(t *testing.T) {
 	tests := []struct {
-		name     string
-		pw       []byte
-		role     int
-		curve    string
-		wantErr  bool
+		name    string
+		pw      []byte
+		role    int
+		curve   Curve
+		wantErr bool
 	}{
-		{"nil password", nil, 0, "p256", false},
-		{"empty password", []byte{}, 0, "p256", false},
-		{"invalid role negative", []byte{1, 2, 3}, -1, "p256", false},
-		{"invalid role large", []byte{1, 2, 3}, 999, "p256", false},
+		{"nil password", nil, 0, CurveP256, false},
+		{"empty password", []byte{}, 0, CurveP256, false},
+		{"invalid role negative", []byte{1, 2, 3}, -1, CurveP256, false},
+		{"invalid role large", []byte{1, 2, 3}, 999, CurveP256, false},
 		{"empty curve", []byte{1, 2, 3}, 0, "", true},
 		{"invalid curve", []byte{1, 2, 3}, 0, "invalid", true},
-		{"very long password", make([]byte, 1000), 0, "p256", false},
+		{"very long password", make([]byte, 1000), 0, CurveP256, false},
 	}
 
 	for _, tt := range tests {
@@ -103,7 +103,7 @@ func TestNilPakeSessionKey(t *testing.T) {
 }
 
 func TestUpdateInvalidData(t *testing.T) {
-	A, err := InitCurve([]byte{1, 2, 3}, 0, "p256")
+	A, err := InitCurve([]byte{1, 2, 3}, 0, CurveP256)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -137,11 +137,11 @@ func TestUpdateInvalidData(t *testing.T) {
 }
 
 func TestSameRoleUpdate(t *testing.T) {
-	A1, err := InitCurve([]byte{1, 2, 3}, 0, "p256")
+	A1, err := InitCurve([]byte{1, 2, 3}, 0, CurveP256)
 	if err != nil {
 		t.Fatal(err)
 	}
-	A2, err := InitCurve([]byte{1, 2, 3}, 0, "p256")
+	A2, err := InitCurve([]byte{1, 2, 3}, 0, CurveP256)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -153,7 +153,7 @@ func TestSameRoleUpdate(t *testing.T) {
 }
 
 func TestSessionKeyBeforeUpdate(t *testing.T) {
-	A, err := InitCurve([]byte{1, 2, 3}, 0, "p256")
+	A, err := InitCurve([]byte{1, 2, 3}, 0, CurveP256)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -170,7 +170,7 @@ func TestSessionKeyBeforeUpdate(t *testing.T) {
 
 func TestMarshalingEdgeCases(t *testing.T) {
 	// Test normal marshaling works
-	A, err := InitCurve([]byte{1, 2, 3}, 0, "p256")
+	A, err := InitCurve([]byte{1, 2, 3}, 0, CurveP256)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -199,12 +199,12 @@ func TestConcurrentUsage(t *testing.T) {
 		go func(id int) {
 			defer wg.Done()
 			pw := []byte{byte(id % 256), 2, 3}
-			A, err := InitCurve(pw, 0, "p256")
+			A, err := InitCurve(pw, 0, CurveP256)
 			if err != nil {
 				errors <- err
 				return
 			}
-			B, err := InitCurve(pw, 1, "p256")
+			B, err := InitCurve(pw, 1, CurveP256)
 			if err != nil {
 				errors <- err
 				return
@@ -232,8 +232,8 @@ func TestConcurrentUsage(t *testing.T) {
 			defer wg.Done()
 			pw1 := []byte{byte(id % 256), 2, 3}
 			pw2 := []byte{byte(id % 256), 2, 4}
-			A, _ := InitCurve(pw1, 0, "p256")
-			B, _ := InitCurve(pw2, 1, "p256")
+			A, _ := InitCurve(pw1, 0, CurveP256)
+			B, _ := InitCurve(pw2, 1, CurveP256)
 
 			B.Update(A.Bytes())
 			A.Update(B.Bytes())
@@ -303,11 +303,11 @@ func TestAllCurvesTableDriven(t *testing.T) {
 }
 
 func BenchmarkPAKE(b *testing.B) {
-	curves := []string{"p256", "p384", "p521", "siec", "ed25519"}
+	curves := []Curve{CurveP256, CurveP384, CurveP521, CurveSIEC, CurveEd25519}
 	pw := []byte{1, 2, 3}
 
 	for _, curve := range curves {
-		b.Run(curve, func(b *testing.B) {
+		b.Run(string(curve), func(b *testing.B) {
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
 				A, _ := InitCurve(pw, 0, curve)
@@ -325,27 +325,27 @@ func BenchmarkInit(b *testing.B) {
 	pw := []byte{1, 2, 3}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = InitCurve(pw, 0, "p256")
+		_, _ = InitCurve(pw, 0, CurveP256)
 	}
 }
 
 func BenchmarkUpdate(b *testing.B) {
 	pw := []byte{1, 2, 3}
-	A, _ := InitCurve(pw, 0, "p256")
-	B, _ := InitCurve(pw, 1, "p256")
+	A, _ := InitCurve(pw, 0, CurveP256)
+	B, _ := InitCurve(pw, 1, CurveP256)
 	aBytes := A.Bytes()
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		B, _ = InitCurve(pw, 1, "p256")
+		B, _ = InitCurve(pw, 1, CurveP256)
 		_ = B.Update(aBytes)
 	}
 }
 
 func BenchmarkSessionKey(b *testing.B) {
 	pw := []byte{1, 2, 3}
-	A, _ := InitCurve(pw, 0, "p256")
-	B, _ := InitCurve(pw, 1, "p256")
+	A, _ := InitCurve(pw, 0, CurveP256)
+	B, _ := InitCurve(pw, 1, CurveP256)
 	B.Update(A.Bytes())
 	A.Update(B.Bytes())
 
