@@ -4,9 +4,11 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/sha256"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"hash"
 	"math/big"
 
 	"filippo.io/edwards25519"
@@ -136,6 +138,10 @@ type Pake struct {
 	Aαᵤ, Aαᵥ   *big.Int
 	Zᵤ, Zᵥ     *big.Int
 	K          []byte
+	curveName  string
+	idA        []byte
+	idB        []byte
+	withIDs    bool
 }
 
 // Public returns the public variables of Pake
@@ -217,17 +223,42 @@ func initCurve(curve string) (ellipticCurve EllipticCurve, P *big.Int, Ux *big.I
 	return
 }
 
-// Init will take the secret weak passphrase (pw) to initialize
-// the points on the elliptic curve. The role is set to either
-// 0 for the sender or 1 for the recipient.
-// The curve can be any elliptic curve.
+// InitCurve takes the secret weak passphrase (pw) and initializes the points
+// on the selected elliptic curve. Role 0 is party A and role 1 is party B.
 func InitCurve(pw []byte, role int, curve string) (p *Pake, err error) {
+	return initCurveWithOptions(pw, role, curve, nil, nil, false)
+}
+
+// InitCurveWithIdentities initializes a PAKE exchange whose session key is
+// bound to the ordered identities of party A (role 0) and party B (role 1).
+// The identities are copied and are never included in the public wire value.
+//
+// This method adds targeted participant and application-context binding to
+// pake's existing protocol. It does not claim full RFC 9382 conformance.
+func InitCurveWithIdentities(pw []byte, role int, curve string, idA, idB []byte) (p *Pake, err error) {
+	if role != 0 && role != 1 {
+		return nil, fmt.Errorf("role must be 0 (A) or 1 (B)")
+	}
+	if len(idA) == 0 || len(idB) == 0 {
+		return nil, fmt.Errorf("both participant identities are required")
+	}
+	return initCurveWithOptions(pw, role, curve, idA, idB, true)
+}
+
+func initCurveWithOptions(pw []byte, role int, curve string, idA, idB []byte, withIDs bool) (p *Pake, err error) {
 	p = new(Pake)
 	p.curve, p.P, p.Uᵤ, p.Uᵥ, p.Vᵤ, p.Vᵥ, err = initCurve(curve)
 	if err != nil {
 		return
 	}
 	p.Pw = pw
+	if withIDs {
+		p.Pw = append([]byte(nil), pw...)
+		p.idA = append([]byte(nil), idA...)
+		p.idB = append([]byte(nil), idB...)
+		p.curveName = curve
+		p.withIDs = true
+	}
 	if role == 1 {
 		p.Role = 1
 	} else {
@@ -246,6 +277,42 @@ func InitCurve(pw []byte, role int, curve string) (p *Pake, err error) {
 		// now X should be sent to B
 	}
 	return
+}
+
+const identityTranscriptDomain = "github.com/schollz/pake/v3/identity-bound-session-key/v1"
+
+func writeTranscriptField(h hash.Hash, value []byte) {
+	var length [8]byte
+	binary.LittleEndian.PutUint64(length[:], uint64(len(value)))
+	_, _ = h.Write(length[:])
+	_, _ = h.Write(value)
+}
+
+func (p *Pake) deriveSessionKey() []byte {
+	h := sha256.New()
+	if !p.withIDs {
+		h.Write(p.Pw)
+		h.Write(p.Xᵤ.Bytes())
+		h.Write(p.Xᵥ.Bytes())
+		h.Write(p.Yᵤ.Bytes())
+		h.Write(p.Yᵥ.Bytes())
+		h.Write(p.Zᵤ.Bytes())
+		h.Write(p.Zᵥ.Bytes())
+		return h.Sum(nil)
+	}
+
+	writeTranscriptField(h, []byte(identityTranscriptDomain))
+	writeTranscriptField(h, p.Pw)
+	writeTranscriptField(h, p.idA)
+	writeTranscriptField(h, p.idB)
+	writeTranscriptField(h, []byte(p.curveName))
+	writeTranscriptField(h, p.Xᵤ.Bytes())
+	writeTranscriptField(h, p.Xᵥ.Bytes())
+	writeTranscriptField(h, p.Yᵤ.Bytes())
+	writeTranscriptField(h, p.Yᵥ.Bytes())
+	writeTranscriptField(h, p.Zᵤ.Bytes())
+	writeTranscriptField(h, p.Zᵥ.Bytes())
+	return h.Sum(nil)
 }
 
 // Bytes just marshalls the PAKE structure so that
@@ -308,17 +375,7 @@ func (p *Pake) Update(qBytes []byte) (err error) {
 		}
 		p.Zᵤ, p.Zᵥ = p.curve.ScalarMult(p.Zᵤ, p.Zᵥ, p.Aα)
 		// STEP: B computes k
-		// H(pw,id_P,id_Q,X,Y,Z)
-		HB := sha256.New()
-		HB.Write(p.Pw)
-		HB.Write(p.Xᵤ.Bytes())
-		HB.Write(p.Xᵥ.Bytes())
-		HB.Write(p.Yᵤ.Bytes())
-		HB.Write(p.Yᵥ.Bytes())
-		HB.Write(p.Zᵤ.Bytes())
-		HB.Write(p.Zᵥ.Bytes())
-		// STEP: B computes k
-		p.K = HB.Sum(nil)
+		p.K = p.deriveSessionKey()
 	} else {
 		p.Yᵤ, p.Yᵥ = q.Yᵤ, q.Yᵥ
 
@@ -340,16 +397,7 @@ func (p *Pake) Update(qBytes []byte) (err error) {
 		}
 		p.Zᵤ, p.Zᵥ = p.curve.ScalarMult(p.Zᵤ, p.Zᵥ, p.Aα)
 		// STEP: A computes k
-		// H(pw,id_P,id_Q,X,Y,Z)
-		HA := sha256.New()
-		HA.Write(p.Pw)
-		HA.Write(p.Xᵤ.Bytes())
-		HA.Write(p.Xᵥ.Bytes())
-		HA.Write(p.Yᵤ.Bytes())
-		HA.Write(p.Yᵥ.Bytes())
-		HA.Write(p.Zᵤ.Bytes())
-		HA.Write(p.Zᵥ.Bytes())
-		p.K = HA.Sum(nil)
+		p.K = p.deriveSessionKey()
 	}
 	return
 }

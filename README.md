@@ -56,6 +56,26 @@ When passing *P* and *Q* back and forth, the structure is being marshalled using
 
 Each function has an error. The error become non-nil when some part of the algorithm fails verification: i.e. the points are not along the elliptic curve, or if a hash from either party is not identified. If this happens, you should abort and start a new PAKE transfer as it would have been compromised. 
 
+## Participant identities
+
+Applications that have ordered participant identities or authenticated session
+context should use `InitCurveWithIdentities`. Both parties must supply the same
+identity for A (role 0) and B (role 1). The identities, curve, password, and
+elliptic-curve transcript are length-prefixed and bound into the session key;
+the identities are not serialized on the wire.
+
+This is targeted participant/context binding for this package's existing PAKE
+protocol. It is not a claim that the package implements the complete RFC 9382
+key schedule or key-confirmation protocol. Applications must perform mutual key
+confirmation before treating the exchange as authenticated.
+
+```golang
+idA := []byte("example/session-123/receiver")
+idB := []byte("example/session-123/sender")
+A, _ := pake.InitCurveWithIdentities(weakKey, 0, "p256", idA, idB)
+B, _ := pake.InitCurveWithIdentities(weakKey, 1, "p256", idA, idB)
+```
+
 ## Hard-coded elliptic curve points
 
 The elliptic curve points are hard-coded to prevent an application from allowing users to supply their own points (which could be backdoors by choosing points with known discrete logs). Public points can be verified [via sage](https://sagecell.sagemath.org/?z=eJzNVk1v3MgRvQvQfyDkw85gJaWrqr9qkQ1AckgjyMXB5mCsYQvNZnc8yFhSZsa7Ehb-73mULNv5wCKLXSDhYdhDVlVX1Xuvmmm3u8rv9z-UQ_Nt89OH05PTk2fNd38c-tOTP13-fnv4-_4of8CrP79P8z4dt3nclt28upD16cntFi_4DXFovsad3cON-OHm8bui5qJ5jLH-HcMB9t9_v7rdXl7f7N-t1utluwEPh91ue4vg_ZLJ6vm4ul2fvzLnpK_XzbNm-Ka5f8Mwu3sjiEp6evJ8cVq9cufErx-ipE91vDo7bEs-e71YLG-WghzTnk5PvsMzc7cxOsRoDCv1XXSivu99oCAqHG3btmbTetu1j_maO0Pj__xCgf8vuYAZ02MuxpE6GTr1FAfqtaVRWVum1nQ-OmuGoeVNG9h1qp2QG6WLnY2qsB8JMJDzpKKOhj4MKqEj77g33Ua6jrrRBHFBNmOMsuFe7EjDaB2NG-s7Z2Q0Bky4e8ylx45xML4Lxho7aL_RQYa-856xQWcta-9tJFHjZOzAiDFybEcPF7uRTde2ZDs3hDCMQ3DKcRxo04PcLY9jGzeDiI2d9BSdbxGtGzUMYRDqeXDdxnvkcv-IEUVBI3wborbS9cZY18fWjZ3lPmyo26jG0Vlr1QVFaj5SaMduQ4GDDMi4R-ghsKpDweyt6Z0znRqSsd2Y4Emc9MFE33Lgnq2JsRvUBq_jhrx36Mv1b8WX1lH0MUTpRh7Vo8Fj3xuycQxGW7cxwMr12kXg2tvQDl3nxy7QoCQRqevPijydT4uAv5TviwuA81m_z5oXF-z8oxqJ0DE2UZmMOM82Bs9eA3qoVq0J4IsTg86QFUuO1QhZ0NSJeCFBozzSDovsHSbC_r-NCSzUIwyzRfODN2LZMrNT48mAe8TGWvGo9vDQ-Wx1Fr_sV8BIFZ-8D7EQCDizn0IkraEokMoP9qHUKQE71uimgm0lT8a5HNxsYWhyiXO0SbMjsmnKqQqF4KMhY2sy85MqXcpe3BxTkqRSwiRlmmaHlBW5TNk7mo2fTM5OJlO9TLlIlsIBaRk7LYp6COQnCjNVLsQZtYYaYemL85KsNZVDMBLmSDyXSSSZahNqs9haYwb7Fzk8BLK1oFmFa6EUqk6xlFAmm0I2VQt5XjJYejphRJRc8jSBNj5KmKqj6pqfJdCFPDLo44nw_O78-f2_MwoE-mdGSbSPjELKhg1AVI-lBROIOSiGCBmwXKC1aJwJivOBgaSHbj2gVBtZBaOGrQsMKMgqZGIElLOB_QI9u6jwNhAQYc4gBBHLcn7tf9XOHjMMlp6DdxifClIxQPdYRwVAJoL5DPKCqnAC9UH3ZY7IEzsTGq7sQRLSxCGBExAAOBoC4I14kueUg3xip85UvHMVo6AarrXaOOe5FIgLhJqnaBA9E3CbTU5k5lp8zQ71KQ6ChElXInpVkqsQVvWFIooJOQcoKsoTe8Ek4ppCYVlYYsHZYpyfitTIM-HgoFmzL7VE7AzNQd1odHUYjTEs3Ef5CqUkLjCfOUWXY5lnKZlTqZ_YnVIMOTFPJUJmAmVOlAOVKmzSHCwSnGXyHKcUdIImoVZLxQBTy0ki5jFXdjMoitngsyRnXUEOwMSkKXxiP2AMc4FwMVM4--pmLRqnigOCZ-ikxmppnmaOmsiGXHQGKCSTq2aK2ZjkDVJDOgE16xySFayzmpJMcfVXSwNK-PJjafvu9mZ_bN6mw9vddlqezKU2dXs9X93ebK-Pq-H8UMr87XR2tv7m9KTB9RLeeHNZ9zfvrqb7YzmsPrpfHt4mWi3268t5-9dyOK7W52e77fG4K2frR-8f3253pfnL_n35GG65jvv7L_4t174c3--vm-Fyt63Hq7vVcDmlQ7mqD5-j69XL9fry7n61_uxU7nK5Pf5LlJfN1xj4S1XLv9OTerNv_lbuzwcU0Hzuy-X2WN4dVk8F3u6XwusZLJevZNw-nDcvluV_6MtXeX-T-av1h6cCf7k3PXj_AxzM6dk=&lang=sage&interacts=eJyLjgUAARUAuQ==) using hashes of `croc1` and `croc2`:

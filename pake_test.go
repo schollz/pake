@@ -50,11 +50,11 @@ func TestBadCurve(t *testing.T) {
 
 func TestInvalidInputs(t *testing.T) {
 	tests := []struct {
-		name     string
-		pw       []byte
-		role     int
-		curve    string
-		wantErr  bool
+		name    string
+		pw      []byte
+		role    int
+		curve   string
+		wantErr bool
 	}{
 		{"nil password", nil, 0, "p256", false},
 		{"empty password", []byte{}, 0, "p256", false},
@@ -299,6 +299,154 @@ func TestAllCurvesTableDriven(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+func TestIdentityBoundSessionKeys(t *testing.T) {
+	password := []byte("shared password")
+	idA := []byte("croc/main/v2/room-one/receiver")
+	idB := []byte("croc/main/v2/room-one/sender")
+
+	for _, curve := range AvailableCurves() {
+		t.Run(curve, func(t *testing.T) {
+			A, err := InitCurveWithIdentities(password, 0, curve, idA, idB)
+			if err != nil {
+				t.Fatal(err)
+			}
+			B, err := InitCurveWithIdentities(password, 1, curve, idA, idB)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err = B.Update(A.Bytes()); err != nil {
+				t.Fatal(err)
+			}
+			if err = A.Update(B.Bytes()); err != nil {
+				t.Fatal(err)
+			}
+			keyA, err := A.SessionKey()
+			if err != nil {
+				t.Fatal(err)
+			}
+			keyB, err := B.SessionKey()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(keyA, keyB) {
+				t.Fatal("identity-bound peers did not derive the same key")
+			}
+			if bytes.Contains(A.Bytes(), idA) || bytes.Contains(A.Bytes(), idB) ||
+				bytes.Contains(B.Bytes(), idA) || bytes.Contains(B.Bytes(), idB) {
+				t.Fatal("participant identities leaked into the public wire value")
+			}
+		})
+	}
+}
+
+func TestIdentityMismatchSeparatesSessions(t *testing.T) {
+	password := []byte("same passphrase")
+	roomOneA := []byte("croc/main/v2/room-one/receiver")
+	roomOneB := []byte("croc/main/v2/room-one/sender")
+	roomTwoA := []byte("croc/main/v2/room-two/receiver")
+	roomTwoB := []byte("croc/main/v2/room-two/sender")
+
+	A, err := InitCurveWithIdentities(password, 0, "p256", roomOneA, roomOneB)
+	if err != nil {
+		t.Fatal(err)
+	}
+	B, err := InitCurveWithIdentities(password, 1, "p256", roomTwoA, roomTwoB)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = B.Update(A.Bytes()); err != nil {
+		t.Fatal(err)
+	}
+	if err = A.Update(B.Bytes()); err != nil {
+		t.Fatal(err)
+	}
+	keyA, _ := A.SessionKey()
+	keyB, _ := B.SessionKey()
+	if bytes.Equal(keyA, keyB) {
+		t.Fatal("cross-wired sessions with different identities derived the same key")
+	}
+}
+
+func TestIdentityOrderMatters(t *testing.T) {
+	password := []byte("same passphrase")
+	idA := []byte("receiver")
+	idB := []byte("sender")
+	A, err := InitCurveWithIdentities(password, 0, "p256", idA, idB)
+	if err != nil {
+		t.Fatal(err)
+	}
+	B, err := InitCurveWithIdentities(password, 1, "p256", idB, idA)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = B.Update(A.Bytes()); err != nil {
+		t.Fatal(err)
+	}
+	if err = A.Update(B.Bytes()); err != nil {
+		t.Fatal(err)
+	}
+	keyA, _ := A.SessionKey()
+	keyB, _ := B.SessionKey()
+	if bytes.Equal(keyA, keyB) {
+		t.Fatal("swapped participant identities derived the same key")
+	}
+}
+
+func TestIdentityInputsAreCopied(t *testing.T) {
+	password := []byte("same passphrase")
+	idA := []byte("receiver")
+	idB := []byte("sender")
+	A, err := InitCurveWithIdentities(password, 0, "p256", idA, idB)
+	if err != nil {
+		t.Fatal(err)
+	}
+	password[0] = 'X'
+	idA[0] = 'X'
+	idB[0] = 'X'
+
+	B, err := InitCurveWithIdentities(
+		[]byte("same passphrase"),
+		1,
+		"p256",
+		[]byte("receiver"),
+		[]byte("sender"),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = B.Update(A.Bytes()); err != nil {
+		t.Fatal(err)
+	}
+	if err = A.Update(B.Bytes()); err != nil {
+		t.Fatal(err)
+	}
+	keyA, _ := A.SessionKey()
+	keyB, _ := B.SessionKey()
+	if !bytes.Equal(keyA, keyB) {
+		t.Fatal("mutating constructor inputs changed the stored transcript")
+	}
+}
+
+func TestIdentityConstructorValidation(t *testing.T) {
+	for _, test := range []struct {
+		name string
+		role int
+		idA  []byte
+		idB  []byte
+	}{
+		{name: "negative role", role: -1, idA: []byte("a"), idB: []byte("b")},
+		{name: "large role", role: 2, idA: []byte("a"), idB: []byte("b")},
+		{name: "missing A", role: 0, idB: []byte("b")},
+		{name: "missing B", role: 0, idA: []byte("a")},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if _, err := InitCurveWithIdentities([]byte("password"), test.role, "p256", test.idA, test.idB); err == nil {
+				t.Fatal("expected validation error")
+			}
+		})
 	}
 }
 
