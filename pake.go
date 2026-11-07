@@ -341,20 +341,30 @@ func (p *Pake) Update(qBytes []byte) (err error) {
 	if err != nil {
 		return
 	}
+	// JSON null unmarshals to a nil pointer, and a JSON object can leave the
+	// curve coordinates nil. Callers pass untrusted handshake bytes here, and
+	// the curve check dereferences those *big.Int values.
+	if q == nil {
+		err = errors.New("peer pake is empty")
+		return
+	}
 	if p.Role == q.Role {
 		err = errors.New("can't have its own role")
 		return
 	}
 
 	if p.Role == 1 {
-		// copy over public variables
-		p.Xᵤ, p.Xᵥ = q.Xᵤ, q.Xᵥ
-
+		if q.Xᵤ == nil || q.Xᵥ == nil {
+			err = errors.New("X values are missing")
+			return
+		}
 		// confirm that X is on curve
-		if !p.curve.IsOnCurve(p.Xᵤ, p.Xᵥ) {
+		if !p.curve.IsOnCurve(q.Xᵤ, q.Xᵥ) {
 			err = errors.New("X values not on curve")
 			return
 		}
+		// copy over public variables
+		p.Xᵤ, p.Xᵥ = q.Xᵤ, q.Xᵥ
 
 		// STEP: B computes Y
 		p.Vpwᵤ, p.Vpwᵥ = p.curve.ScalarMult(p.Vᵤ, p.Vᵥ, p.Pw)
@@ -377,13 +387,16 @@ func (p *Pake) Update(qBytes []byte) (err error) {
 		// STEP: B computes k
 		p.K = p.deriveSessionKey()
 	} else {
-		p.Yᵤ, p.Yᵥ = q.Yᵤ, q.Yᵥ
-
+		if q.Yᵤ == nil || q.Yᵥ == nil {
+			err = errors.New("Y values are missing")
+			return
+		}
 		// confirm that Y is on curve
-		if !p.curve.IsOnCurve(p.Yᵤ, p.Yᵥ) {
+		if !p.curve.IsOnCurve(q.Yᵤ, q.Yᵥ) {
 			err = errors.New("Y values not on curve")
 			return
 		}
+		p.Yᵤ, p.Yᵥ = q.Yᵤ, q.Yᵥ
 
 		// STEP: A computes Z
 		if ed25519Curve, ok := p.curve.(*Edwards25519Curve); ok {
