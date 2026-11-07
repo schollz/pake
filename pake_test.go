@@ -109,28 +109,57 @@ func TestUpdateInvalidData(t *testing.T) {
 	}
 
 	tests := []struct {
-		name        string
-		data        []byte
-		expectPanic bool
+		name string
+		data []byte
 	}{
-		{"empty data", []byte{}, false},
-		{"invalid json", []byte("invalid json"), false},
-		{"null data", []byte("null"), true},
-		{"malformed json", []byte("{invalid:}"), false},
+		{"empty data", []byte{}},
+		{"invalid json", []byte("invalid json")},
+		{"null data", []byte("null")},
+		{"malformed json", []byte("{invalid:}")},
+		{"no points", []byte("{}")},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.expectPanic {
-				defer func() {
-					if r := recover(); r == nil {
-						t.Errorf("Update() should panic for %s", tt.name)
-					}
-				}()
-			}
 			err := A.Update(tt.data)
-			if !tt.expectPanic && err == nil {
+			if err == nil {
 				t.Errorf("Update() should return error for %s", tt.name)
+			}
+		})
+	}
+}
+
+func TestUpdateRejectsMissingCurvePoints(t *testing.T) {
+	for _, curve := range []string{"siec", "p256", "ed25519"} {
+		t.Run(curve, func(t *testing.T) {
+			cases := []struct {
+				name string
+				role int
+				data string
+			}{
+				{"role B null", 1, "null"},
+				{"role B empty object", 1, "{}"},
+				{"role B missing X", 1, `{"Role":0}`},
+				{"role B one X coordinate", 1, `{"Role":0,"Xᵤ":1}`},
+				{"role B off curve", 1, `{"Role":0,"Xᵤ":1,"Xᵥ":1}`},
+				{"role A null", 0, "null"},
+				{"role A missing Y", 0, `{"Role":1}`},
+				{"role A one Y coordinate", 0, `{"Role":1,"Yᵤ":1}`},
+				{"role A off curve", 0, `{"Role":1,"Yᵤ":1,"Yᵥ":1}`},
+			}
+			for _, tt := range cases {
+				t.Run(tt.name, func(t *testing.T) {
+					party, err := InitCurve([]byte{1, 2, 3}, tt.role, curve)
+					if err != nil {
+						t.Fatal(err)
+					}
+					if err = party.Update([]byte(tt.data)); err == nil {
+						t.Fatal("Update() should return an error")
+					}
+					if party.HaveSessionKey() {
+						t.Fatal("rejected update generated a session key")
+					}
+				})
 			}
 		})
 	}
